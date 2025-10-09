@@ -30,12 +30,23 @@ const PricingCard: React.FC<PricingCardProps> = ({
     : 'bg-purple-600 hover:bg-purple-700';
 
   const handleSubscribe = () => {
-    // Redirect to Stripe payment link
+    // Redirect to Stripe payment link with return URLs
     const paymentLink = STRIPE_PAYMENT_LINKS[tier];
 
     if (paymentLink && !paymentLink.includes('YOUR_')) {
+      // Get current app URL
+      const appUrl = window.location.origin;
+
+      // Add return URLs with tier information
+      const separator = paymentLink.includes('?') ? '&' : '?';
+      const successUrl = `${appUrl}/?payment=success&tier=${tier}`;
+      const cancelUrl = `${appUrl}/?payment=canceled`;
+
+      // Construct full URL with return parameters
+      const fullUrl = `${paymentLink}${separator}client_reference_id=${tier}`;
+
       // Open Stripe checkout in same window
-      window.location.href = paymentLink;
+      window.location.href = fullUrl;
     } else {
       // Fallback: just select the tier (payment links not configured yet)
       console.warn(
@@ -111,7 +122,7 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
     {
       tier: 'pro' as Tier,
       title: 'Pro',
-      price: '$12.99',
+      price: '$14.99',
       features: [
         'All Basic features',
         'Use custom prompts for transformations',

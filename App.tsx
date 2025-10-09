@@ -37,6 +37,47 @@ function App() {
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showPaymentCanceled, setShowPaymentCanceled] = useState(false);
 
+  // Check for payment status on load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentStatus = urlParams.get('payment');
+    const paidTier = urlParams.get('tier');
+
+    if (paymentStatus === 'success' && paidTier) {
+      // Update tier based on payment
+      const newTier = paidTier as Tier;
+      setTier(newTier);
+
+      // Store in localStorage for persistence
+      localStorage.setItem('userTier', newTier);
+
+      // Show success modal
+      setShowPaymentSuccess(true);
+
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      console.log('✅ Payment successful! Tier updated to:', newTier);
+    } else if (paymentStatus === 'canceled') {
+      setShowPaymentCanceled(true);
+
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  // Load saved tier from localStorage on mount
+  useEffect(() => {
+    const savedTier = localStorage.getItem('userTier');
+    if (
+      savedTier &&
+      (savedTier === 'basic' || savedTier === 'pro' || savedTier === 'magic')
+    ) {
+      setTier(savedTier as Tier);
+      console.log('📦 Loaded saved tier:', savedTier);
+    }
+  }, []);
+
   useEffect(() => {
     // Play ambient sound on app load.
     // Note: Autoplay may be blocked by the browser until the user interacts with the page.
@@ -61,6 +102,10 @@ function App() {
 
   const handleTierChange = (newTier: Tier) => {
     setTier(newTier);
+
+    // Save to localStorage
+    localStorage.setItem('userTier', newTier);
+
     // Reset results when tier changes
     setResult(null);
     setError(null);
@@ -259,8 +304,15 @@ function App() {
       </div>
 
       {/* Payment Success/Cancel Modals */}
-      {showPaymentSuccess && <PaymentSuccess />}
-      {showPaymentCanceled && <PaymentCanceled />}
+      {showPaymentSuccess && (
+        <PaymentSuccess
+          onClose={() => setShowPaymentSuccess(false)}
+          tier={tier}
+        />
+      )}
+      {showPaymentCanceled && (
+        <PaymentCanceled onClose={() => setShowPaymentCanceled(false)} />
+      )}
     </div>
   );
 }
