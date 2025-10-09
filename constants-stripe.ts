@@ -2,7 +2,7 @@
 // Replace these with your actual payment links from Stripe Dashboard
 
 export const STRIPE_PAYMENT_LINKS = {
-  basic: 'https://buy.stripe.com/3cI14ne2y2Hs2X1ePL73G04',
+  basic: 'https://buy.stripe.com/eVqeVd8Ie3Lw2X1ePL73G06',
   pro: 'https://buy.stripe.com/28E14n4rYeqafJNbDz73G02',
   magic: 'https://buy.stripe.com/9B67sL4rY3Lw0OT4b773G05',
 };
