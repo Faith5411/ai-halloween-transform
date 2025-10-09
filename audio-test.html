@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Test - Halloween Sounds</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            color: #ff6b35;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            color: #aaa;
+            font-size: 0.9em;
+        }
+
+        .sound-section {
+            margin-bottom: 30px;
+        }
+
+        .sound-section h2 {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #ff9a56;
+        }
+
+        .sound-section p {
+            color: #bbb;
+            margin-bottom: 15px;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-image {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-video {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.playing {
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .status {
+            text-align: center;
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            font-size: 0.9em;
+            color: #aaa;
+        }
+
+        .status.active {
+            background: rgba(102, 126, 234, 0.2);
+            color: #667eea;
+        }
+
+        .emoji {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .info-box {
+            background: rgba(255, 107, 53, 0.1);
+            border-left: 4px solid #ff6b35;
+            padding: 15px;
+            margin-top: 30px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎃 Audio Test Page</h1>
+        <p class="subtitle">Test the Halloween-themed sound effects</p>
+
+        <div class="sound-section">
+            <h2>👻 Login Sound</h2>
+            <p>Spooky descending tones (440Hz → 330Hz) - plays when the app loads</p>
+            <button class="btn-login" onclick="playLogin()">
+                <span class="emoji">👻</span>Play Login Sound
+            </button>
+        </div>
+
+        <div class="sound-section">
+            <h2>✨ Image Success Sound</h2>
+            <p>Ascending success jingle (C → E → G) - plays when image transformation completes</p>
+            <button class="btn-image" onclick="playImageSuccess()">
+                <span class="emoji">✨</span>Play Image Success
+            </button>
+        </div>
+
+        <div class="sound-section">
+            <h2>🎬 Video Success Sound</h2>
+            <p>Triumphant chord with layered tones - plays when video generation completes</p>
+            <button class="btn-video" onclick="playVideoSuccess()">
+                <span class="emoji">🎬</span>Play Video Success
+            </button>
+        </div>
+
+        <div class="status" id="status">
+            Click any button to test the sounds
+        </div>
+
+        <div class="info-box">
+            <strong>ℹ️ Note:</strong> These are generated tones using the Web Audio API.
+            The actual app will use these as fallbacks if no .wav files are found in the /public/audio/ directory.
+        </div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let isInitialized = false;
+
+        function initAudio() {
+            if (isInitialized) return;
+
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                isInitialized = true;
+                updateStatus('Audio initialized! 🔊', true);
+            } catch (error) {
+                console.error('AudioContext not supported:', error);
+                updateStatus('⚠️ Audio not supported in this browser', false);
+            }
+        }
+
+        function updateStatus(message, active = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            if (active) {
+                status.classList.add('active');
+                setTimeout(() => status.classList.remove('active'), 2000);
+            }
+        }
+
+        async function playTone(frequency, duration, volume = 0.3, delay = 0) {
+            if (!audioContext) return;
+
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
+
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+
+            oscillator.type = 'sine';
+            oscillator.frequency.value = frequency;
+            gainNode.gain.value = volume;
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+
+            const startTime = audioContext.currentTime + delay;
+            oscillator.start(startTime);
+            gainNode.gain.exponentialRampToValueAtTime(
+                0.01,
+                startTime + duration
+            );
+            oscillator.stop(startTime + duration);
+        }
+
+        function animateButton(button) {
+            button.classList.add('playing');
+            setTimeout(() => button.classList.remove('playing'), 500);
+        }
+
+        async function playLogin() {
+            initAudio();
+            const button = event.target.closest('button');
+            animateButton(button);
+
+            if (!audioContext) return;
+
+            updateStatus('Playing login sound... 👻', true);
+
+            // Spooky descending tone
+            await playTone(440, 0.15, 0.2, 0);
+            await playTone(330, 0.15, 0.2, 0.15);
+        }
+
+        async function playImageSuccess() {
+            initAudio();
+            const button = event.target.closest('button');
+            animateButton(button);
+
+            if (!audioContext) return;
+
+            updateStatus('Playing image success sound... ✨', true);
+
+            // Success jingle: ascending tones
+            await playTone(523, 0.1, 0.3, 0);      // C
+            await playTone(659, 0.1, 0.3, 0.1);    // E
+            await playTone(784, 0.2, 0.3, 0.2);    // G
+        }
+
+        async function playVideoSuccess() {
+            initAudio();
+            const button = event.target.closest('button');
+            animateButton(button);
+
+            if (!audioContext) return;
+
+            updateStatus('Playing video success sound... 🎬', true);
+
+            // Triumphant chord: multiple tones
+            await playTone(523, 0.3, 0.2, 0);      // C
+            await playTone(659, 0.3, 0.2, 0.05);   // E
+            await playTone(784, 0.3, 0.2, 0.1);    // G
+        }
+
+        // Initialize on first click
+        document.addEventListener('click', initAudio, { once: true });
+    </script>
+</body>
+</html>

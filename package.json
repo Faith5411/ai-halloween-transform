@@ -1,0 +1,31 @@
+{
+  "name": "ai-halloween-2",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@google/genai": "^1.22.0",
+    "@stripe/stripe-js": "^8.0.0",
+    "@supabase/supabase-js": "^2.74.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "stripe": "^19.1.0"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.4.0",
+    "@capacitor/cli": "^7.4.0",
+    "@capacitor/core": "^7.4.0",
+    "@capacitor/ios": "^7.4.0",
+    "@types/node": "^22.14.0",
+    "@types/stripe": "^8.0.416",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vercel": "^48.2.9",
+    "vite": "^6.2.0"
+  }
+}

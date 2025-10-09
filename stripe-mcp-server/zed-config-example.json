@@ -1,0 +1,13 @@
+{
+  "context_servers": {
+    "stripe-mcp": {
+      "command": "node",
+      "args": [
+        "/home/jdog/ai-haloween 2/stripe-mcp-server/dist/index.js"
+      ],
+      "env": {
+        "STRIPE_SECRET_KEY": "sk_test_YOUR_TEST_KEY_HERE"
+      }
+    }
+  }
+}
