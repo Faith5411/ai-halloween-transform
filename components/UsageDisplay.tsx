@@ -6,8 +6,10 @@ import {
   getRemainingVideos,
   getUsagePercentage,
   getDaysUntilReset,
+  getBonusTransforms,
   TIER_LIMITS,
 } from '../services/usageService';
+import BuyMoreTransforms from './BuyMoreTransforms';
 
 interface UsageDisplayProps {
   tier: Tier;
@@ -22,8 +24,16 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
   const [remainingVideos, setRemainingVideos] = useState(() =>
     getRemainingVideos(tier)
   );
-  const [daysUntilReset, setDaysUntilReset] = useState(() => getDaysUntilReset());
-  const [usagePercent, setUsagePercent] = useState(() => getUsagePercentage(tier));
+  const [daysUntilReset, setDaysUntilReset] = useState(() =>
+    getDaysUntilReset()
+  );
+  const [usagePercent, setUsagePercent] = useState(() =>
+    getUsagePercentage(tier)
+  );
+  const [bonusTransforms, setBonusTransforms] = useState(() =>
+    getBonusTransforms(tier)
+  );
+  const [showBuyMore, setShowBuyMore] = useState(false);
 
   // Update usage when tier changes or periodically
   useEffect(() => {
@@ -33,6 +43,7 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
       setRemainingVideos(getRemainingVideos(tier));
       setDaysUntilReset(getDaysUntilReset());
       setUsagePercent(getUsagePercentage(tier));
+      setBonusTransforms(getBonusTransforms(tier));
     };
 
     updateUsage();
@@ -89,7 +100,9 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
               <>
                 <span
                   className={
-                    remainingTransforms === 0 ? 'text-red-400' : 'text-green-400'
+                    remainingTransforms === 0
+                      ? 'text-red-400'
+                      : 'text-green-400'
                   }
                 >
                   {remainingTransforms}
@@ -116,6 +129,14 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
         {transformLimit !== -1 && (
           <div className='text-xs text-gray-400 mt-1'>
             Used: {usage.transforms} / {transformLimit}
+          </div>
+        )}
+
+        {/* Bonus Transforms Display */}
+        {bonusTransforms > 0 && (
+          <div className='text-xs text-green-400 mt-1 flex items-center gap-1'>
+            <span>🎁</span>
+            <span>+{bonusTransforms} bonus transforms available!</span>
           </div>
         )}
       </div>
@@ -169,18 +190,30 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
       )}
 
       {/* Upgrade Prompt */}
-      {showUpgradePrompt && onUpgrade && (
+      {showUpgradePrompt && (
         <div className='mt-4 p-4 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border border-orange-500 rounded-lg'>
-          <p className='text-orange-300 text-sm mb-2'>
-            <strong>🎃 Limit Reached!</strong> You've used all your transforms this
-            month.
+          <p className='text-orange-300 text-sm mb-3'>
+            <strong>🎃 Limit Reached!</strong> You've used all your transforms
+            this month.
           </p>
+
+          {/* Buy More Button */}
           <button
-            onClick={onUpgrade}
-            className='w-full py-2 px-4 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 text-white font-bold rounded-lg transition-all duration-200 transform hover:scale-105'
+            onClick={() => setShowBuyMore(true)}
+            className='w-full py-2 px-4 mb-2 bg-gradient-to-r from-green-500 to-teal-600 hover:from-green-600 hover:to-teal-700 text-white font-bold rounded-lg transition-all duration-200 transform hover:scale-105'
           >
-            Upgrade Now 🚀
+            Buy More Transforms 💰
           </button>
+
+          {/* Upgrade Button */}
+          {onUpgrade && (
+            <button
+              onClick={onUpgrade}
+              className='w-full py-2 px-4 bg-gradient-to-r from-orange-500 to-purple-600 hover:from-orange-600 hover:to-purple-700 text-white font-bold rounded-lg transition-all duration-200 transform hover:scale-105'
+            >
+              Or Upgrade Plan 🚀
+            </button>
+          )}
         </div>
       )}
 
@@ -204,6 +237,15 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
           {TIER_LIMITS[tier].name}
         </span>
       </div>
+
+      {/* Buy More Modal */}
+      {showBuyMore && (
+        <BuyMoreTransforms
+          remainingTransforms={remainingTransforms}
+          tier={tier}
+          onClose={() => setShowBuyMore(false)}
+        />
+      )}
     </div>
   );
 };

@@ -14,6 +14,7 @@ import {
   playImageSuccessSound,
   playVideoSuccessSound,
 } from './services/audioService';
+import { addBonusTransforms } from './services/usageService';
 import type { UploadedFile, NightmareOption, Tier } from './types';
 import { fileToBase64 } from './utils/fileUtils';
 import { FloatingGhostIcon } from './components/Icons';
@@ -42,6 +43,7 @@ function App() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment');
     const paidTier = urlParams.get('tier');
+    const packSize = urlParams.get('pack');
 
     if (paymentStatus === 'success' && paidTier) {
       // Update tier based on payment
@@ -58,6 +60,20 @@ function App() {
       window.history.replaceState({}, document.title, window.location.pathname);
 
       console.log('✅ Payment successful! Tier updated to:', newTier);
+    } else if (paymentStatus === 'success' && packSize) {
+      // Handle transform pack purchase
+      const transformCount = parseInt(packSize, 10);
+      addBonusTransforms(transformCount);
+
+      // Show success modal
+      setShowPaymentSuccess(true);
+
+      // Clean URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+
+      console.log(
+        `✅ Transform pack purchased! Added ${transformCount} bonus transforms`
+      );
     } else if (paymentStatus === 'canceled') {
       setShowPaymentCanceled(true);
 

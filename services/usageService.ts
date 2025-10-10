@@ -4,6 +4,7 @@
 export interface UsageData {
   transforms: number;
   videos: number;
+  bonusTransforms: number; // One-time purchases (don't reset monthly)
   lastResetDate: string;
   tier: 'basic' | 'pro' | 'magic';
 }
@@ -58,6 +59,7 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
       return {
         transforms: 0,
         videos: 0,
+        bonusTransforms: 0,
         lastResetDate: getCurrentBillingPeriodStart(),
         tier,
       };
@@ -70,6 +72,7 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
       return {
         transforms: 0,
         videos: 0,
+        bonusTransforms: data.bonusTransforms || 0, // Keep bonus transforms on reset
         lastResetDate: getCurrentBillingPeriodStart(),
         tier,
       };
@@ -81,6 +84,7 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
     return {
       transforms: 0,
       videos: 0,
+      bonusTransforms: 0,
       lastResetDate: getCurrentBillingPeriodStart(),
       tier,
     };
@@ -108,7 +112,8 @@ export function canTransform(tier: 'basic' | 'pro' | 'magic'): boolean {
   // -1 means unlimited
   if (limit === -1) return true;
 
-  return usage.transforms < limit;
+  // Can transform if within regular limit OR have bonus transforms
+  return usage.transforms < limit || usage.bonusTransforms > 0;
 }
 
 /**
@@ -129,12 +134,23 @@ export function canCreateVideo(tier: 'basic' | 'pro' | 'magic'): boolean {
  */
 export function incrementTransformCount(tier: 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
-  usage.transforms += 1;
+  const limit = TIER_LIMITS[tier].transforms;
+
+  // Use bonus transforms first if available and regular limit is reached
+  if (limit !== -1 && usage.transforms >= limit && usage.bonusTransforms > 0) {
+    usage.bonusTransforms -= 1;
+    console.log(
+      `✅ Used bonus transform! Bonus remaining: ${usage.bonusTransforms}`
+    );
+  } else {
+    usage.transforms += 1;
+    console.log(
+      `✅ Transform count: ${usage.transforms}/${limit === -1 ? '∞' : limit}`
+    );
+  }
+
   usage.tier = tier;
   saveUsageData(usage);
-  console.log(
-    `✅ Transform count: ${usage.transforms}/${TIER_LIMITS[tier].transforms === -1 ? '∞' : TIER_LIMITS[tier].transforms}`
-  );
 }
 
 /**
@@ -162,7 +178,7 @@ export function getRemainingTransforms(
   if (limit === -1) return -1; // unlimited
 
   const remaining = limit - usage.transforms;
-  return Math.max(0, remaining);
+  return Math.max(0, remaining) + usage.bonusTransforms;
 }
 
 /**
@@ -209,6 +225,28 @@ export function resetUsage(): void {
 }
 
 /**
+ * Add bonus transforms from one-time purchase
+ */
+export function addBonusTransforms(count: number): void {
+  const savedTier =
+    (localStorage.getItem('userTier') as 'basic' | 'pro' | 'magic') || 'basic';
+  const usage = getUsageData(savedTier);
+  usage.bonusTransforms = (usage.bonusTransforms || 0) + count;
+  saveUsageData(usage);
+  console.log(
+    `🎁 Added ${count} bonus transforms! Total bonus: ${usage.bonusTransforms}`
+  );
+}
+
+/**
+ * Get bonus transforms count
+ */
+export function getBonusTransforms(tier: 'basic' | 'pro' | 'magic'): number {
+  const usage = getUsageData(tier);
+  return usage.bonusTransforms || 0;
+}
+
+/**
  * Get formatted usage summary
  */
 export function getUsageSummary(tier: 'basic' | 'pro' | 'magic'): string {
@@ -243,5 +281,7 @@ export default {
   getDaysUntilReset,
   resetUsage,
   getUsageSummary,
+  addBonusTransforms,
+  getBonusTransforms,
   TIER_LIMITS,
 };
