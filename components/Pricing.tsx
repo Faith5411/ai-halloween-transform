@@ -109,13 +109,12 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
   const tiers = [
     {
       tier: 'basic' as Tier,
-      title: 'Basic (FREE)',
-      price: 'FREE',
+      title: 'Basic',
+      price: '$4.99',
       features: [
-        '3 free photos (lifetime)',
+        '10 transforms per month',
         'Upload your photo',
         'Pick from preset costumes',
-        'Then upgrade to continue',
       ],
       Icon: WandIcon,
       color: 'border-orange-500',
@@ -123,12 +122,11 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
     {
       tier: 'pro' as Tier,
       title: 'Pro',
-      price: '$5/month',
+      price: '$14.99',
       features: [
         '30 transforms per month',
         'Use custom prompts',
         'Priority processing',
-        'Monthly reset',
       ],
       Icon: BrainIcon,
       color: 'border-purple-500',
@@ -136,13 +134,12 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
     {
       tier: 'magic' as Tier,
       title: 'Magic',
-      price: '$10/month',
+      price: '$29.99',
       features: [
         '35 transforms per month',
         '35 videos per month',
         'Generate 5-second videos',
         'Priority processing',
-        'Monthly reset',
       ],
       Icon: RobotIcon,
       color: 'border-green-400',

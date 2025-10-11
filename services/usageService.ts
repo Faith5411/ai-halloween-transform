@@ -12,9 +12,9 @@ export interface UsageData {
 // Tier limits per month
 export const TIER_LIMITS = {
   basic: {
-    transforms: 3,
+    transforms: 10,
     videos: 0,
-    name: 'Basic (Free)',
+    name: 'Basic',
   },
   pro: {
     transforms: 30,
@@ -40,15 +40,8 @@ function getCurrentBillingPeriodStart(): string {
 
 /**
  * Check if we need to reset usage (new billing period)
- * Note: Basic tier never resets (lifetime limit)
  */
-function shouldResetUsage(
-  lastResetDate: string,
-  tier: 'basic' | 'pro' | 'magic'
-): boolean {
-  // Basic tier has lifetime limit (3 total), never resets
-  if (tier === 'basic') return false;
-
+function shouldResetUsage(lastResetDate: string): boolean {
   const lastReset = new Date(lastResetDate);
   const currentPeriodStart = new Date(getCurrentBillingPeriodStart());
   return lastReset < currentPeriodStart;
@@ -75,7 +68,7 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
     const data: UsageData = JSON.parse(stored);
 
     // Check if tier changed or if we need to reset for new billing period
-    if (data.tier !== tier || shouldResetUsage(data.lastResetDate, tier)) {
+    if (data.tier !== tier || shouldResetUsage(data.lastResetDate)) {
       return {
         transforms: 0,
         videos: 0,
@@ -110,7 +103,7 @@ function saveUsageData(data: UsageData): void {
 }
 
 /**
- * Check if user can perform a transform
+ * Check if user can create a transformation
  */
 export function canTransform(tier: 'basic' | 'pro' | 'magic'): boolean {
   const usage = getUsageData(tier);
@@ -137,7 +130,7 @@ export function canCreateVideo(tier: 'basic' | 'pro' | 'magic'): boolean {
 }
 
 /**
- * Increment transform count
+ * Increment transformation count
  */
 export function incrementTransformCount(tier: 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
@@ -152,11 +145,12 @@ export function incrementTransformCount(tier: 'basic' | 'pro' | 'magic'): void {
   } else {
     usage.transforms += 1;
     console.log(
-      `✅ Transform count: ${usage.transforms}/${limit === -1 ? '∞' : limit}`
+      `✅ Transform count: ${usage.transforms}/${
+        TIER_LIMITS[tier].transforms === -1 ? '∞' : TIER_LIMITS[tier].transforms
+      }`
     );
   }
 
-  usage.tier = tier;
   saveUsageData(usage);
 }
 
@@ -166,7 +160,6 @@ export function incrementTransformCount(tier: 'basic' | 'pro' | 'magic'): void {
 export function incrementVideoCount(tier: 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
   usage.videos += 1;
-  usage.tier = tier;
   saveUsageData(usage);
   console.log(
     `✅ Video count: ${usage.videos}/${TIER_LIMITS[tier].videos === -1 ? '∞' : TIER_LIMITS[tier].videos}`
@@ -202,7 +195,7 @@ export function getRemainingVideos(tier: 'basic' | 'pro' | 'magic'): number {
 }
 
 /**
- * Get usage percentage (0-100)
+ * Get usage percentage (for progress bars)
  */
 export function getUsagePercentage(tier: 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
@@ -219,42 +212,31 @@ export function getUsagePercentage(tier: 'basic' | 'pro' | 'magic'): number {
 export function getDaysUntilReset(): number {
   const now = new Date();
   const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  const diff = nextMonth.getTime() - now.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const diffTime = nextMonth.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
 }
 
 /**
- * Reset usage manually (for testing)
+ * Reset usage for new billing period (called automatically)
  */
-export function resetUsage(): void {
-  localStorage.removeItem(STORAGE_KEY);
-  console.log('✅ Usage data reset');
-}
-
-/**
- * Add bonus transforms from one-time purchase
- */
-export function addBonusTransforms(count: number): void {
-  const savedTier =
-    (localStorage.getItem('userTier') as 'basic' | 'pro' | 'magic') || 'basic';
-  const usage = getUsageData(savedTier);
-  usage.bonusTransforms = (usage.bonusTransforms || 0) + count;
-  saveUsageData(usage);
-  console.log(
-    `🎁 Added ${count} bonus transforms! Total bonus: ${usage.bonusTransforms}`
-  );
-}
-
-/**
- * Get bonus transforms count
- */
-export function getBonusTransforms(tier: 'basic' | 'pro' | 'magic'): number {
+export function resetUsageIfNeeded(tier: 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
-  return usage.bonusTransforms || 0;
+  if (shouldResetUsage(usage.lastResetDate)) {
+    console.log('🔄 Resetting usage for new billing period');
+    const newUsage: UsageData = {
+      transforms: 0,
+      videos: 0,
+      bonusTransforms: usage.bonusTransforms, // Keep bonus transforms
+      lastResetDate: getCurrentBillingPeriodStart(),
+      tier,
+    };
+    saveUsageData(newUsage);
+  }
 }
 
 /**
- * Get formatted usage summary
+ * Get human-readable usage summary
  */
 export function getUsageSummary(tier: 'basic' | 'pro' | 'magic'): string {
   const usage = getUsageData(tier);
@@ -269,15 +251,42 @@ export function getUsageSummary(tier: 'basic' | 'pro' | 'magic'): string {
   const videoText =
     videoLimit === -1
       ? `${usage.videos} videos (unlimited)`
-      : `${usage.videos}/${videoLimit} videos`;
+      : videoLimit === 0
+        ? 'No videos'
+        : `${usage.videos}/${videoLimit} videos`;
 
-  const daysLeft = getDaysUntilReset();
+  const bonusText =
+    usage.bonusTransforms > 0
+      ? ` + ${usage.bonusTransforms} bonus transforms`
+      : '';
 
-  return `${transformText}, ${videoText} | Resets in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+  return `${transformText}${bonusText}, ${videoText}`;
+}
+
+/**
+ * Add bonus transforms (from one-time purchases)
+ */
+export function addBonusTransforms(count: number): void {
+  // We'll store this for the current tier, but it persists across tier changes
+  const currentTier =
+    (localStorage.getItem('userTier') as 'basic' | 'pro' | 'magic') || 'basic';
+  const usage = getUsageData(currentTier);
+  usage.bonusTransforms = (usage.bonusTransforms || 0) + count;
+  saveUsageData(usage);
+  console.log(
+    `✅ Added ${count} bonus transforms! Total: ${usage.bonusTransforms}`
+  );
+}
+
+/**
+ * Get bonus transforms available
+ */
+export function getBonusTransforms(tier: 'basic' | 'pro' | 'magic'): number {
+  const usage = getUsageData(tier);
+  return usage.bonusTransforms || 0;
 }
 
 export default {
-  getUsageData,
   canTransform,
   canCreateVideo,
   incrementTransformCount,
@@ -286,7 +295,8 @@ export default {
   getRemainingVideos,
   getUsagePercentage,
   getDaysUntilReset,
-  resetUsage,
+  resetUsageIfNeeded,
+  getUsageData,
   getUsageSummary,
   addBonusTransforms,
   getBonusTransforms,
