@@ -12,9 +12,9 @@ export interface UsageData {
 // Tier limits per month
 export const TIER_LIMITS = {
   basic: {
-    transforms: 10,
+    transforms: 3,
     videos: 0,
-    name: 'Basic',
+    name: 'Basic (Free)',
   },
   pro: {
     transforms: 30,
@@ -40,8 +40,15 @@ function getCurrentBillingPeriodStart(): string {
 
 /**
  * Check if we need to reset usage (new billing period)
+ * Note: Basic tier never resets (lifetime limit)
  */
-function shouldResetUsage(lastResetDate: string): boolean {
+function shouldResetUsage(
+  lastResetDate: string,
+  tier: 'basic' | 'pro' | 'magic'
+): boolean {
+  // Basic tier has lifetime limit (3 total), never resets
+  if (tier === 'basic') return false;
+
   const lastReset = new Date(lastResetDate);
   const currentPeriodStart = new Date(getCurrentBillingPeriodStart());
   return lastReset < currentPeriodStart;
@@ -68,7 +75,7 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
     const data: UsageData = JSON.parse(stored);
 
     // Check if tier changed or if we need to reset for new billing period
-    if (data.tier !== tier || shouldResetUsage(data.lastResetDate)) {
+    if (data.tier !== tier || shouldResetUsage(data.lastResetDate, tier)) {
       return {
         transforms: 0,
         videos: 0,

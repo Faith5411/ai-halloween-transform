@@ -75,14 +75,16 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
       <div className='flex items-center justify-between mb-4'>
         <h3 className='text-xl font-bold text-white flex items-center gap-2'>
           <span className='text-2xl'>📊</span>
-          Usage This Month
+          {tier === 'basic' ? 'Usage (Lifetime)' : 'Usage This Month'}
         </h3>
-        <div className='text-sm text-purple-300'>
-          Resets in{' '}
-          <span className='font-bold text-orange-400'>
-            {daysUntilReset} day{daysUntilReset === 1 ? '' : 's'}
-          </span>
-        </div>
+        {tier !== 'basic' && (
+          <div className='text-sm text-purple-300'>
+            Resets in{' '}
+            <span className='font-bold text-orange-400'>
+              {daysUntilReset} day{daysUntilReset === 1 ? '' : 's'}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Transform Usage */}
@@ -193,8 +195,11 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
       {showUpgradePrompt && (
         <div className='mt-4 p-4 bg-gradient-to-r from-orange-600/20 to-purple-600/20 border border-orange-500 rounded-lg'>
           <p className='text-orange-300 text-sm mb-3'>
-            <strong>🎃 Limit Reached!</strong> You've used all your transforms
-            this month.
+            <strong>🎃 Limit Reached!</strong> You've used all your{' '}
+            {tier === 'basic' ? 'free' : ''} transforms
+            {tier === 'basic'
+              ? '! Upgrade to continue creating.'
+              : ' this month.'}
           </p>
 
           {/* Buy More Button */}
@@ -225,7 +230,8 @@ const UsageDisplay: React.FC<UsageDisplayProps> = ({ tier, onUpgrade }) => {
           <div className='mt-4 p-3 bg-yellow-900/30 border border-yellow-500/50 rounded-lg'>
             <p className='text-yellow-300 text-sm'>
               ⚠️ Only <strong>{remainingTransforms}</strong> transform
-              {remainingTransforms === 1 ? '' : 's'} left this month!
+              {remainingTransforms === 1 ? '' : 's'} left
+              {tier === 'basic' ? '!' : ' this month!'}
             </p>
           </div>
         )}

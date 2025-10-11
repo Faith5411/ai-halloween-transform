@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Debug</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <h1>Auth Debug Tool</h1>
+    <input id="email" placeholder="Email" value="debug@test.com">
+    <input id="password" type="password" placeholder="Password" value="Test123456!">
+    <button onclick="testSignUp()">Test Sign Up</button>
+    <button onclick="testLogin()">Test Login</button>
+    <pre id="output" style="background:#000;color:#0f0;padding:20px;"></pre>
+    
+    <script>
+        const supabase = window.supabase.createClient(
+            'https://twsnioiuggbyzfxajlwk.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3c25pb2l1Z2dieXpmeGFqbHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5OTc2NzQsImV4cCI6MjA3NTU3MzY3NH0.YucpUB6CwU6FZ0uRC0mr1oPtQUWQcFWB2unePNSCJCY'
+        );
+        
+        const output = document.getElementById('output');
+        
+        async function testSignUp() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            output.textContent = 'Testing sign up...\n';
+            
+            try {
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    output.textContent += '\n❌ ERROR:\n' + JSON.stringify(error, null, 2);
+                } else {
+                    output.textContent += '\n✅ SUCCESS:\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (e) {
+                output.textContent += '\n💥 EXCEPTION:\n' + e.message;
+            }
+        }
+        
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            output.textContent = 'Testing login...\n';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    output.textContent += '\n❌ ERROR:\n' + JSON.stringify(error, null, 2);
+                } else {
+                    output.textContent += '\n✅ SUCCESS:\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (e) {
+                output.textContent += '\n💥 EXCEPTION:\n' + e.message;
+            }
+        }
+    </script>
+</body>
+</html>

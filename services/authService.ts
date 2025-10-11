@@ -1,8 +1,13 @@
-import { createClient, SupabaseClient, User, Session } from '@supabase/supabase-js';
+import {
+  createClient,
+  SupabaseClient,
+  User,
+  Session,
+} from '@supabase/supabase-js';
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+const supabaseUrl = (import.meta as any).env?.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY || '';
 
 let supabase: SupabaseClient | null = null;
 
@@ -26,7 +31,9 @@ export const getCurrentUser = async (): Promise<User | null> => {
   const client = initSupabase();
   if (!client) return null;
 
-  const { data: { user } } = await client.auth.getUser();
+  const {
+    data: { user },
+  } = await client.auth.getUser();
   return user;
 };
 
@@ -35,12 +42,18 @@ export const getCurrentSession = async (): Promise<Session | null> => {
   const client = initSupabase();
   if (!client) return null;
 
-  const { data: { session } } = await client.auth.getSession();
+  const {
+    data: { session },
+  } = await client.auth.getSession();
   return session;
 };
 
 // Sign up with email and password
-export const signUp = async (email: string, password: string, name?: string) => {
+export const signUp = async (
+  email: string,
+  password: string,
+  name?: string
+) => {
   const client = initSupabase();
   if (!client) throw new Error('Supabase not configured');
 
@@ -102,7 +115,9 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
   const client = initSupabase();
   if (!client) return () => {};
 
-  const { data: { subscription } } = client.auth.onAuthStateChange((_event, session) => {
+  const {
+    data: { subscription },
+  } = client.auth.onAuthStateChange((_event, session) => {
     callback(session?.user ?? null);
   });
 
@@ -110,7 +125,10 @@ export const onAuthStateChange = (callback: (user: User | null) => void) => {
 };
 
 // Update user profile
-export const updateProfile = async (updates: { name?: string; avatar_url?: string }) => {
+export const updateProfile = async (updates: {
+  name?: string;
+  avatar_url?: string;
+}) => {
   const client = initSupabase();
   if (!client) throw new Error('Supabase not configured');
 
@@ -123,7 +141,9 @@ export const updateProfile = async (updates: { name?: string; avatar_url?: strin
 };
 
 // Get user's Stripe customer ID
-export const getStripeCustomerId = async (userId: string): Promise<string | null> => {
+export const getStripeCustomerId = async (
+  userId: string
+): Promise<string | null> => {
   const client = initSupabase();
   if (!client) return null;
 
@@ -142,23 +162,26 @@ export const getStripeCustomerId = async (userId: string): Promise<string | null
 };
 
 // Set user's Stripe customer ID
-export const setStripeCustomerId = async (userId: string, stripeCustomerId: string) => {
+export const setStripeCustomerId = async (
+  userId: string,
+  stripeCustomerId: string
+) => {
   const client = initSupabase();
   if (!client) throw new Error('Supabase not configured');
 
-  const { error } = await client
-    .from('users')
-    .upsert({
-      id: userId,
-      stripe_customer_id: stripeCustomerId,
-      updated_at: new Date().toISOString(),
-    });
+  const { error } = await client.from('users').upsert({
+    id: userId,
+    stripe_customer_id: stripeCustomerId,
+    updated_at: new Date().toISOString(),
+  });
 
   if (error) throw error;
 };
 
 // Get user's subscription tier
-export const getUserTier = async (userId: string): Promise<'basic' | 'pro' | 'magic'> => {
+export const getUserTier = async (
+  userId: string
+): Promise<'basic' | 'pro' | 'magic'> => {
   const client = initSupabase();
   if (!client) return 'basic';
 
@@ -177,17 +200,18 @@ export const getUserTier = async (userId: string): Promise<'basic' | 'pro' | 'ma
 };
 
 // Update user's subscription tier
-export const updateUserTier = async (userId: string, tier: 'basic' | 'pro' | 'magic') => {
+export const updateUserTier = async (
+  userId: string,
+  tier: 'basic' | 'pro' | 'magic'
+) => {
   const client = initSupabase();
   if (!client) throw new Error('Supabase not configured');
 
-  const { error } = await client
-    .from('users')
-    .upsert({
-      id: userId,
-      subscription_tier: tier,
-      updated_at: new Date().toISOString(),
-    });
+  const { error } = await client.from('users').upsert({
+    id: userId,
+    subscription_tier: tier,
+    updated_at: new Date().toISOString(),
+  });
 
   if (error) throw error;
 };

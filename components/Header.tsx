@@ -44,7 +44,7 @@ const Header: React.FC = () => {
           <PumpkinIcon className='w-10 h-10 text-orange-400' />
         </div>
         <p className='mt-2 text-lg md:text-xl text-purple-300'>
-          Transform yourself using Jeremy L Crandall's AI magic app ✨
+          Transform yourself using J.L.Crandall's AI magic app ✨
         </p>
       </header>
 

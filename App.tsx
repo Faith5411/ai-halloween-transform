@@ -5,6 +5,10 @@ import CostumeSelector from './components/CostumePrompt';
 import ResultDisplay from './components/ResultDisplay';
 import Pricing from './components/Pricing';
 import { PaymentSuccess, PaymentCanceled } from './components/PaymentSuccess';
+import ShareToGallery from './components/ShareToGallery';
+import AuthModal from './components/AuthModal';
+import LandingPage from './components/LandingPage';
+import { useAuth } from './contexts/AuthContext';
 import {
   transformImage,
   generateVideoFromImage,
@@ -20,6 +24,7 @@ import { fileToBase64 } from './utils/fileUtils';
 import { FloatingGhostIcon } from './components/Icons';
 
 function App() {
+  const { user, loading } = useAuth();
   const [file, setFile] = useState<UploadedFile | null>(null);
   const [selectedNightmare, setSelectedNightmare] =
     useState<NightmareOption | null>(null);
@@ -37,6 +42,12 @@ function App() {
   // Payment state
   const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [showPaymentCanceled, setShowPaymentCanceled] = useState(false);
+
+  // Gallery share state
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Auth modal state
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   // Check for payment status on load
   useEffect(() => {
@@ -258,6 +269,34 @@ function App() {
 
   const canTransform = file !== null && !!customPrompt && !isLoading;
 
+  // Show loading while checking auth
+  if (loading) {
+    return (
+      <div className='min-h-screen bg-transparent text-white flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='text-6xl mb-4'>🎃</div>
+          <div className='text-xl text-purple-300'>Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show landing page if not authenticated
+  if (!user) {
+    return (
+      <>
+        <LandingPage
+          onGetStarted={() => setShowAuthModal(true)}
+          onSignIn={() => setShowAuthModal(true)}
+        />
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+        />
+      </>
+    );
+  }
+
   return (
     <div className='min-h-screen bg-transparent text-white relative overflow-hidden'>
       {/* Animated Decorations */}
@@ -300,6 +339,7 @@ function App() {
             canTransform={canTransform}
             onTransform={handleTransform}
             hasFile={!!file}
+            onShareToGallery={() => setShowShareModal(true)}
             videoResult={videoResult}
             isVideoLoading={isVideoLoading}
             videoError={videoError}
@@ -328,6 +368,22 @@ function App() {
       )}
       {showPaymentCanceled && (
         <PaymentCanceled onClose={() => setShowPaymentCanceled(false)} />
+      )}
+
+      {/* Gallery Share Modal */}
+      {showShareModal && result && (
+        <ShareToGallery
+          imageUrl={result}
+          costumeName={selectedNightmare?.label || 'Custom Transform'}
+          prompt={customPrompt}
+          isVideo={!!videoResult}
+          thumbnailUrl={result}
+          onClose={() => setShowShareModal(false)}
+          onSuccess={() => {
+            console.log('✅ Successfully shared to gallery!');
+            setShowShareModal(false);
+          }}
+        />
       )}
     </div>
   );

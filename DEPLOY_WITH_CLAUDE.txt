@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════════════════
+  🚀 COPY THIS INTO CLAUDE DESKTOP TO DEPLOY NOW 🚀
+═══════════════════════════════════════════════════════════════════════
+
+STEP 1: List my Vercel projects to confirm connection
+
+STEP 2: Once confirmed, deploy ai-halloween with these environment variables:
+
+Add to ai-halloween for ALL environments (production, preview, development):
+
+VITE_SUPABASE_URL=https://twsnioiuggbyzfxajlwk.supabase.co
+
+VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3c25pb2l1Z2dieXpmeGFqbHdrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk5OTc2NzQsImV4cCI6MjA3NTU3MzY3NH0.YucpUB6CwU6FZ0uRC0mr1oPtQUWQcFWB2unePNSCJCY
+
+VITE_GEMINI_API_KEY=AIzaSyCQXupCZJcDaUCntfrVIoVlwCb0Q51e6q0
+
+VITE_STRIPE_PUBLISHABLE_KEY=[Get from Stripe MCP or dashboard]
+
+STEP 3: After adding all environment variables, create a production deployment immediately.
+
+STEP 4: Monitor the deployment and show me the live URL when ready.
+
+═══════════════════════════════════════════════════════════════════════
