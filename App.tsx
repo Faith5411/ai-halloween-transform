@@ -43,7 +43,7 @@ function App() {
   const [result, setResult] = useState<string | null>(null);
 
   // New state for tiers and video
-  const [tier, setTier] = useState<Tier>('basic');
+  const [tier, setTier] = useState<Tier>('free');
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [videoResult, setVideoResult] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
@@ -110,7 +110,7 @@ function App() {
     const savedTier = localStorage.getItem('userTier');
     if (
       savedTier &&
-      (savedTier === 'basic' || savedTier === 'pro' || savedTier === 'magic')
+      (savedTier === 'free' || savedTier === 'basic' || savedTier === 'pro' || savedTier === 'magic')
     ) {
       setTier(savedTier as Tier);
       console.log('📦 Loaded saved tier:', savedTier);

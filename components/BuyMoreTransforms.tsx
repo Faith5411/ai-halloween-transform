@@ -3,7 +3,7 @@ import { TRANSFORM_PACK_LINKS } from '../constants-stripe';
 
 interface BuyMoreTransformsProps {
   remainingTransforms: number;
-  tier: 'basic' | 'pro' | 'magic';
+  tier: 'free' | 'basic' | 'pro' | 'magic';
   onClose?: () => void;
 }
 
@@ -150,17 +150,22 @@ const BuyMoreTransforms: React.FC<BuyMoreTransformsProps> = ({
         </div>
 
         {/* Alternative: Upgrade */}
-        {tier === 'basic' && (
+        {(tier === 'free' || tier === 'basic') && (
           <div className="mt-6 text-center">
             <p className="text-gray-400 text-sm mb-2">
               Or upgrade to get more transforms every month:
             </p>
             <div className="flex justify-center gap-4 flex-wrap">
+              {tier === 'free' && (
+                <span className="text-sm text-orange-300">
+                  <strong>Basic:</strong> 10/month for $4.99
+                </span>
+              )}
               <span className="text-sm text-purple-300">
                 <strong>Pro:</strong> 30/month for $14.99
               </span>
               <span className="text-sm text-green-300">
-                <strong>Magic:</strong> 35/month + videos for $29.99
+                <strong>Magic:</strong> 30/month + videos for $29.99
               </span>
             </div>
           </div>

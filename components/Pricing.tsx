@@ -110,14 +110,27 @@ interface PricingProps {
 const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
   const tiers = [
     {
-      tier: 'basic' as Tier,
-      title: 'Basic (FREE)',
+      tier: 'free' as Tier,
+      title: 'Free',
       price: 'FREE',
       features: [
         '3 free photos (lifetime)',
         'Upload your photo',
         'Pick from preset costumes',
-        'Then upgrade to continue',
+        'Try before you buy',
+      ],
+      Icon: WandIcon,
+      color: 'border-gray-500',
+    },
+    {
+      tier: 'basic' as Tier,
+      title: 'Basic',
+      price: '$4.99',
+      features: [
+        '10 transforms per month',
+        'Preset costumes only',
+        'No custom prompts',
+        'Monthly reset',
       ],
       Icon: WandIcon,
       color: 'border-orange-500',
@@ -125,10 +138,11 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
     {
       tier: 'pro' as Tier,
       title: 'Pro',
-      price: '$4.99',
+      price: '$14.99',
       features: [
         '30 transforms per month',
-        'Use custom prompts',
+        'All preset costumes',
+        'Custom prompts enabled',
         'Priority processing',
         'Monthly reset',
       ],
@@ -138,10 +152,12 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
     {
       tier: 'magic' as Tier,
       title: 'Magic',
-      price: '$9.99',
+      price: '$29.99',
       features: [
-        '35 transforms per month',
-        '35 videos per month',
+        '30 transforms per month',
+        '30 videos per month',
+        'All preset costumes',
+        'Custom prompts enabled',
         'Generate 5-second videos',
         'Priority processing',
         'Monthly reset',
@@ -156,7 +172,7 @@ const Pricing: React.FC<PricingProps> = ({ selectedTier, onSelectTier }) => {
       <h2 className='text-3xl font-bold text-center mb-6 text-white'>
         Choose Your Magic Level
       </h2>
-      <div className='grid grid-cols-1 md:grid-cols-3 gap-8'>
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6'>
         {tiers.map(tierInfo => (
           <PricingCard
             key={tierInfo.tier}

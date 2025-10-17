@@ -6,28 +6,38 @@ export interface UsageData {
   videos: number;
   bonusTransforms: number; // One-time purchases (don't reset monthly)
   lastResetDate: string;
-  tier: 'basic' | 'pro' | 'magic';
+  tier: 'free' | 'basic' | 'pro' | 'magic';
 }
 
 // Tier limits
 export const TIER_LIMITS = {
-  basic: {
+  free: {
     transforms: 3, // 3 lifetime for free tier
     videos: 0,
-    name: 'Basic (FREE)',
+    name: 'Free',
     isLifetime: true, // This is a lifetime limit, not monthly
+    customPrompts: false,
+  },
+  basic: {
+    transforms: 10, // 10 per month
+    videos: 0,
+    name: 'Basic',
+    isLifetime: false,
+    customPrompts: false, // Only preset costumes
   },
   pro: {
     transforms: 30, // 30 per month
     videos: 0,
     name: 'Pro',
     isLifetime: false,
+    customPrompts: true, // Can use custom prompts
   },
   magic: {
-    transforms: 35, // 35 per month
-    videos: 35, // 35 per month
+    transforms: 30, // 30 per month
+    videos: 30, // 30 videos per month
     name: 'Magic',
     isLifetime: false,
+    customPrompts: true, // Can use custom prompts
   },
 };
 
@@ -53,7 +63,7 @@ function shouldResetUsage(lastResetDate: string): boolean {
 /**
  * Get current usage data for the user
  */
-export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
+export function getUsageData(tier: 'free' | 'basic' | 'pro' | 'magic'): UsageData {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
 
@@ -70,19 +80,19 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
 
     const data: UsageData = JSON.parse(stored);
 
-    // For basic tier (lifetime limit), never reset transforms
-    if (tier === 'basic') {
-      // If switching to basic from another tier, keep the transform count
+    // For free tier (lifetime limit), never reset transforms
+    if (tier === 'free') {
+      // If switching to free from another tier, keep the transform count
       if (data.tier !== tier) {
         return {
-          transforms: data.transforms || 0, // Keep existing transform count for basic
+          transforms: data.transforms || 0, // Keep existing transform count for free
           videos: 0,
           bonusTransforms: data.bonusTransforms || 0,
           lastResetDate: getCurrentBillingPeriodStart(),
           tier,
         };
       }
-      // Basic tier doesn't reset
+      // Free tier doesn't reset
       return data;
     }
 
@@ -124,7 +134,7 @@ function saveUsageData(data: UsageData): void {
 /**
  * Check if user can create a transformation
  */
-export function canTransform(tier: 'basic' | 'pro' | 'magic'): boolean {
+export function canTransform(tier: 'free' | 'basic' | 'pro' | 'magic'): boolean {
   const usage = getUsageData(tier);
   const limit = TIER_LIMITS[tier].transforms;
 
@@ -138,7 +148,7 @@ export function canTransform(tier: 'basic' | 'pro' | 'magic'): boolean {
 /**
  * Check if user can create a video
  */
-export function canCreateVideo(tier: 'basic' | 'pro' | 'magic'): boolean {
+export function canCreateVideo(tier: 'free' | 'basic' | 'pro' | 'magic'): boolean {
   const usage = getUsageData(tier);
   const limit = TIER_LIMITS[tier].videos;
 
@@ -151,7 +161,7 @@ export function canCreateVideo(tier: 'basic' | 'pro' | 'magic'): boolean {
 /**
  * Increment transformation count
  */
-export function incrementTransformCount(tier: 'basic' | 'pro' | 'magic'): void {
+export function incrementTransformCount(tier: 'free' | 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
   const limit = TIER_LIMITS[tier].transforms;
 
@@ -176,7 +186,7 @@ export function incrementTransformCount(tier: 'basic' | 'pro' | 'magic'): void {
 /**
  * Increment video count
  */
-export function incrementVideoCount(tier: 'basic' | 'pro' | 'magic'): void {
+export function incrementVideoCount(tier: 'free' | 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
   usage.videos += 1;
   saveUsageData(usage);
@@ -189,7 +199,7 @@ export function incrementVideoCount(tier: 'basic' | 'pro' | 'magic'): void {
  * Get remaining transforms for current billing period
  */
 export function getRemainingTransforms(
-  tier: 'basic' | 'pro' | 'magic'
+  tier: 'free' | 'basic' | 'pro' | 'magic'
 ): number {
   const usage = getUsageData(tier);
   const limit = TIER_LIMITS[tier].transforms;
@@ -203,7 +213,7 @@ export function getRemainingTransforms(
 /**
  * Get remaining videos for current billing period
  */
-export function getRemainingVideos(tier: 'basic' | 'pro' | 'magic'): number {
+export function getRemainingVideos(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
   const limit = TIER_LIMITS[tier].videos;
 
@@ -216,7 +226,7 @@ export function getRemainingVideos(tier: 'basic' | 'pro' | 'magic'): number {
 /**
  * Get usage percentage (for progress bars)
  */
-export function getUsagePercentage(tier: 'basic' | 'pro' | 'magic'): number {
+export function getUsagePercentage(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
   const limit = TIER_LIMITS[tier].transforms;
 
@@ -239,7 +249,7 @@ export function getDaysUntilReset(): number {
 /**
  * Reset usage for new billing period (called automatically)
  */
-export function resetUsageIfNeeded(tier: 'basic' | 'pro' | 'magic'): void {
+export function resetUsageIfNeeded(tier: 'free' | 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
   if (shouldResetUsage(usage.lastResetDate)) {
     console.log('🔄 Resetting usage for new billing period');
@@ -257,7 +267,7 @@ export function resetUsageIfNeeded(tier: 'basic' | 'pro' | 'magic'): void {
 /**
  * Get human-readable usage summary
  */
-export function getUsageSummary(tier: 'basic' | 'pro' | 'magic'): string {
+export function getUsageSummary(tier: 'free' | 'basic' | 'pro' | 'magic'): string {
   const usage = getUsageData(tier);
   const transformLimit = TIER_LIMITS[tier].transforms;
   const videoLimit = TIER_LIMITS[tier].videos;
@@ -288,7 +298,7 @@ export function getUsageSummary(tier: 'basic' | 'pro' | 'magic'): string {
 export function addBonusTransforms(count: number): void {
   // We'll store this for the current tier, but it persists across tier changes
   const currentTier =
-    (localStorage.getItem('userTier') as 'basic' | 'pro' | 'magic') || 'basic';
+    (localStorage.getItem('userTier') as 'free' | 'basic' | 'pro' | 'magic') || 'free';
   const usage = getUsageData(currentTier);
   usage.bonusTransforms = (usage.bonusTransforms || 0) + count;
   saveUsageData(usage);
@@ -300,7 +310,7 @@ export function addBonusTransforms(count: number): void {
 /**
  * Get bonus transforms available
  */
-export function getBonusTransforms(tier: 'basic' | 'pro' | 'magic'): number {
+export function getBonusTransforms(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
   return usage.bonusTransforms || 0;
 }

@@ -20,7 +20,7 @@ const CostumeSelector: React.FC<CostumeSelectorProps> = ({
   isLoading,
   tier,
 }) => {
-  const isCustomPromptDisabled = isLoading || tier === 'basic';
+  const isCustomPromptDisabled = isLoading || tier === 'free' || tier === 'basic';
   const [showTips, setShowTips] = useState(false);
   const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets');
 
@@ -205,7 +205,7 @@ const CostumeSelector: React.FC<CostumeSelectorProps> = ({
 Example: "Transform me into a ghostly pirate captain with glowing green eyes, wearing a tattered naval coat covered in seaweed, standing on the deck of a spectral ship emerging from fog, with ethereal tentacles wrapped around the masts under a blood moon"'
             disabled={isCustomPromptDisabled}
           />
-          {isCustomPromptDisabled && tier === 'basic' && (
+          {isCustomPromptDisabled && (tier === 'free' || tier === 'basic') && (
             <div className='absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center text-center p-4'>
               <p className='text-white font-semibold text-lg'>
                 🔒 Upgrade to <span className='text-purple-400'>Pro</span> or{' '}

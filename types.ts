@@ -12,4 +12,4 @@ export interface NightmareOption {
   prompt: string;
 }
 
-export type Tier = 'basic' | 'pro' | 'magic';
+export type Tier = 'free' | 'basic' | 'pro' | 'magic';
