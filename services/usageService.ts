@@ -9,22 +9,25 @@ export interface UsageData {
   tier: 'basic' | 'pro' | 'magic';
 }
 
-// Tier limits per month
+// Tier limits
 export const TIER_LIMITS = {
   basic: {
-    transforms: 10,
+    transforms: 3, // 3 lifetime for free tier
     videos: 0,
-    name: 'Basic',
+    name: 'Basic (FREE)',
+    isLifetime: true, // This is a lifetime limit, not monthly
   },
   pro: {
-    transforms: 30,
+    transforms: 30, // 30 per month
     videos: 0,
     name: 'Pro',
+    isLifetime: false,
   },
   magic: {
-    transforms: 35,
-    videos: 35,
+    transforms: 35, // 35 per month
+    videos: 35, // 35 per month
     name: 'Magic',
+    isLifetime: false,
   },
 };
 
@@ -67,10 +70,26 @@ export function getUsageData(tier: 'basic' | 'pro' | 'magic'): UsageData {
 
     const data: UsageData = JSON.parse(stored);
 
-    // Check if tier changed or if we need to reset for new billing period
+    // For basic tier (lifetime limit), never reset transforms
+    if (tier === 'basic') {
+      // If switching to basic from another tier, keep the transform count
+      if (data.tier !== tier) {
+        return {
+          transforms: data.transforms || 0, // Keep existing transform count for basic
+          videos: 0,
+          bonusTransforms: data.bonusTransforms || 0,
+          lastResetDate: getCurrentBillingPeriodStart(),
+          tier,
+        };
+      }
+      // Basic tier doesn't reset
+      return data;
+    }
+
+    // For paid tiers, check if tier changed or if we need to reset for new billing period
     if (data.tier !== tier || shouldResetUsage(data.lastResetDate)) {
       return {
-        transforms: 0,
+        transforms: 0, // Reset for paid tiers
         videos: 0,
         bonusTransforms: data.bonusTransforms || 0, // Keep bonus transforms on reset
         lastResetDate: getCurrentBillingPeriodStart(),

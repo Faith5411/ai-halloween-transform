@@ -4,6 +4,7 @@ import PhotoUploader from './components/PhotoUploader';
 import CostumeSelector from './components/CostumePrompt';
 import ResultDisplay from './components/ResultDisplay';
 import Pricing from './components/Pricing';
+import UsageDisplay from './components/UsageDisplay';
 import { PaymentSuccess, PaymentCanceled } from './components/PaymentSuccess';
 import ShareToGallery from './components/ShareToGallery';
 import Gallery from './components/Gallery';
@@ -19,7 +20,14 @@ import {
   playImageSuccessSound,
   playVideoSuccessSound,
 } from './services/audioService';
-import { addBonusTransforms } from './services/usageService';
+import {
+  addBonusTransforms,
+  canTransform as checkCanTransform,
+  canCreateVideo as checkCanCreateVideo,
+  incrementTransformCount,
+  incrementVideoCount,
+  getRemainingTransforms
+} from './services/usageService';
 import type { UploadedFile, NightmareOption, Tier } from './types';
 import { fileToBase64 } from './utils/fileUtils';
 import { FloatingGhostIcon } from './components/Icons';
@@ -179,6 +187,13 @@ function App() {
       return;
     }
 
+    // Check if user has transforms remaining
+    if (!checkCanTransform(tier)) {
+      console.error('❌ No transforms remaining');
+      setError(`You've used all your transforms for this month. Upgrade your plan or buy more transforms to continue!`);
+      return;
+    }
+
     console.log('🚀 Starting transformation...');
     setIsLoading(true);
     setError(null);
@@ -199,6 +214,12 @@ function App() {
 
       const transformedImage = await transformImage([imagePart], customPrompt);
       console.log('✅ Transformation complete!');
+
+      // Increment usage count on success
+      incrementTransformCount(tier);
+      const remaining = getRemainingTransforms(tier);
+      console.log(`📊 Transforms remaining: ${remaining}`);
+
       setResult(transformedImage);
       playImageSuccessSound();
     } catch (err) {
@@ -214,7 +235,7 @@ function App() {
     } finally {
       setIsLoading(false);
     }
-  }, [file, customPrompt]);
+  }, [file, customPrompt, tier]);
 
   const handleCreateVideo = useCallback(async () => {
     console.log('🎬 Create video button clicked!');
@@ -229,6 +250,13 @@ function App() {
       setVideoError(
         'Video generation is only available in the Magic tier with a generated image.'
       );
+      return;
+    }
+
+    // Check if user has video credits remaining
+    if (!checkCanCreateVideo(tier)) {
+      console.error('❌ No video credits remaining');
+      setVideoError(`You've used all your video credits for this month. They'll reset next month!`);
       return;
     }
 
@@ -254,6 +282,10 @@ function App() {
         customPrompt
       );
       console.log('✅ Video generation complete!');
+
+      // Increment video usage count on success
+      incrementVideoCount(tier);
+
       setVideoResult(videoUrl);
       playVideoSuccessSound();
     } catch (err) {
@@ -331,6 +363,15 @@ function App() {
         <Header onShowGallery={() => setShowGallery(true)} />
 
         <Pricing selectedTier={tier} onSelectTier={handleTierChange} />
+
+        {/* Usage Display - Shows credits remaining */}
+        <div className='mt-8'>
+          <UsageDisplay tier={tier} onUpgrade={() => {
+            // Scroll to pricing section
+            const pricingElement = document.querySelector('section');
+            pricingElement?.scrollIntoView({ behavior: 'smooth' });
+          }} />
+        </div>
 
         <main className='mt-8 grid grid-cols-1 md:grid-cols-2 gap-8 items-start'>
           <PhotoUploader file={file} onFileChange={handleFileChange} />
