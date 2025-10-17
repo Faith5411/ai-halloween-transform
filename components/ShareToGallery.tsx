@@ -7,6 +7,7 @@ import { getCurrentUser } from '../services/authService';
 
 interface ShareToGalleryProps {
   imageUrl: string;
+  beforeImageUrl?: string;
   costumeName?: string;
   prompt?: string;
   isVideo?: boolean;
@@ -17,6 +18,7 @@ interface ShareToGalleryProps {
 
 const ShareToGallery: React.FC<ShareToGalleryProps> = ({
   imageUrl,
+  beforeImageUrl,
   costumeName,
   prompt,
   isVideo = false,
@@ -58,7 +60,8 @@ const ShareToGallery: React.FC<ShareToGalleryProps> = ({
         costumeName || 'Spooky Transform',
         prompt,
         isVideo,
-        thumbnailUrl
+        thumbnailUrl,
+        beforeImageUrl
       );
 
       if (result.success) {

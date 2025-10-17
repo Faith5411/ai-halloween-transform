@@ -26,6 +26,7 @@ export interface GalleryItem {
   user_id: string;
   user_email: string | null;
   image_url: string;
+  before_image_url: string | null;
   thumbnail_url: string | null;
   costume_name: string | null;
   prompt: string | null;
@@ -111,7 +112,8 @@ export const submitToGallery = async (
   costumeName: string,
   prompt?: string,
   isVideo: boolean = false,
-  thumbnailUrl?: string
+  thumbnailUrl?: string,
+  beforeImageUrl?: string
 ): Promise<{ success: boolean; error?: string; itemId?: string }> => {
   const client = getSupabaseClient();
   if (!client) return { success: false, error: 'Supabase not configured' };
@@ -122,6 +124,7 @@ export const submitToGallery = async (
       user_id: userId,
       user_email: userEmail,
       image_url: imageUrl,
+      before_image_url: beforeImageUrl,
       thumbnail_url: thumbnailUrl,
       costume_name: costumeName,
       prompt: prompt,
@@ -395,7 +398,7 @@ export const reportGalleryItem = async (
     .from('gallery')
     .select('reported_count')
     .eq('id', galleryId)
-    .single();
+    .maybeSingle();
 
   if (currentItem) {
     await client

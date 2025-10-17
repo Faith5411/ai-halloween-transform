@@ -1,11 +1,26 @@
-import { GoogleGenAI, Modality } from '@google/genai';
+import {
+  GoogleGenAI,
+  Modality,
+} from '@google/genai';
 
 // Lazy initialization to avoid crash on module load
 let ai: GoogleGenAI | null = null;
 
+function getEnvList(name: string, fallback: string[]): string[] {
+  const raw = (import.meta as any).env?.[name] as string | undefined;
+  if (!raw) {
+    return fallback;
+  }
+
+  return raw
+    .split(',')
+    .map(model => model.trim())
+    .filter(Boolean);
+}
+
 function getAI(): GoogleGenAI {
   if (!ai) {
-    const apiKey = process.env.API_KEY;
+    const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
     console.log('🔑 API Key check:', apiKey ? '✅ Loaded' : '❌ Missing');
     console.log(
       '🔑 API Key preview:',
@@ -13,7 +28,7 @@ function getAI(): GoogleGenAI {
     );
     if (!apiKey) {
       throw new Error(
-        'API_KEY environment variable is not set. Please check your .env.local file.'
+        'VITE_GEMINI_API_KEY environment variable is not set. Please check your .env file.'
       );
     }
     console.log('🚀 Initializing GoogleGenAI...');
@@ -29,6 +44,15 @@ export async function transformImage(
 ): Promise<string> {
   console.log('🎨 Starting image transformation...');
   console.log('📝 Prompt:', prompt.substring(0, 50) + '...');
+  console.log('📸 Images count:', images.length);
+  console.log('📸 First image MIME:', images[0]?.mimeType);
+  console.log('📸 First image data length:', images[0]?.data?.length);
+
+  const imageModels = getEnvList('VITE_GEMINI_IMAGE_MODELS', [
+    'gemini-2.5-pro',
+    'gemini-2.0-flash-exp',
+  ]);
+  console.log('🧠 Image model candidates:', imageModels);
 
   const imageParts = images.map(image => ({
     inlineData: {
@@ -42,76 +66,76 @@ export async function transformImage(
   };
 
   console.log('📡 Sending request to Gemini API...');
-  const response = await getAI().models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: [
-      {
-        parts: [...imageParts, textPart],
-      },
-    ],
-    config: {
-      responseModalities: [Modality.IMAGE, Modality.TEXT],
-    },
-  });
+  console.log('🔑 API Key loaded:', getAI() ? 'YES' : 'NO');
 
-  console.log('✅ Received response from Gemini API');
-  console.log(
-    '📦 Response structure:',
-    JSON.stringify(response, null, 2).substring(0, 500)
-  );
+  let lastError: unknown = null;
 
-  // Check response structure
-  if (!response) {
-    console.error('❌ No response received');
-    throw new Error('No response received from API');
-  }
+  for (const model of imageModels) {
+    console.log(`🧪 Attempting image model: ${model}`);
 
-  if (!response.candidates || response.candidates.length === 0) {
-    console.error('❌ No candidates in response');
-    throw new Error('No candidates in API response');
-  }
+    try {
+      const response = await getAI().models.generateContent({
+        model,
+        contents: [
+          {
+            parts: [...imageParts, textPart],
+          },
+        ],
+        config: {
+          responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+      });
 
-  if (!response.candidates[0]) {
-    console.error('❌ First candidate is undefined');
-    throw new Error('First candidate is undefined');
-  }
+      console.log('✅ Received response from Gemini API');
+      console.log(
+        '📦 Response structure:',
+        JSON.stringify(response, null, 2).substring(0, 500)
+      );
 
-  if (!response.candidates[0].content) {
-    console.error('❌ No content in candidate');
-    console.error('❌ Candidate:', JSON.stringify(response.candidates[0]));
-    throw new Error('No content in API response candidate');
-  }
+      if (!response) {
+        throw new Error('No response received from API');
+      }
 
-  if (!response.candidates[0].content.parts) {
-    console.error('❌ No parts in content');
-    console.error(
-      '❌ Content:',
-      JSON.stringify(response.candidates[0].content)
-    );
-    throw new Error('No parts in API response content');
-  }
+      if (!response.candidates || response.candidates.length === 0) {
+        throw new Error('No candidates in API response');
+      }
 
-  console.log('📦 Found', response.candidates[0].content.parts.length, 'parts');
+      if (!response.candidates[0]?.content?.parts) {
+        throw new Error('No parts in API response content');
+      }
 
-  for (const part of response.candidates[0].content.parts) {
-    console.log('🔍 Checking part:', Object.keys(part));
-    if (part.inlineData) {
-      const base64ImageBytes: string = part.inlineData.data;
-      const mimeType = part.inlineData.mimeType;
-      console.log('🖼️ Image generated successfully!');
-      return `data:${mimeType};base64,${base64ImageBytes}`;
+      console.log(
+        '📦 Found',
+        response.candidates[0].content.parts.length,
+        'parts'
+      );
+
+      for (const part of response.candidates[0].content.parts) {
+        console.log('🔍 Checking part:', Object.keys(part));
+        if (part.inlineData) {
+          const base64ImageBytes: string = part.inlineData.data;
+          const mimeType = part.inlineData.mimeType;
+          console.log('🖼️ Image generated successfully!');
+          return `data:${mimeType};base64,${base64ImageBytes}`;
+        }
+      }
+
+      const textResponse = response.text;
+      if (textResponse) {
+        throw new Error(`Model could not generate image: ${textResponse}`);
+      }
+
+      throw new Error('No image was generated by the model.');
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Model ${model} failed:`, error);
     }
   }
 
-  // Attempt to return text if the model explains why it couldn't generate an image
-  const textResponse = response.text;
-  if (textResponse) {
-    console.error('❌ Model could not generate image:', textResponse);
-    throw new Error(`Model could not generate image: ${textResponse}`);
-  }
-
-  console.error('❌ No image was generated by the model');
-  throw new Error('No image was generated by the model.');
+  console.error('❌ All image models failed');
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('All image models failed.');
 }
 
 export async function generateVideoFromImage(
@@ -122,56 +146,76 @@ export async function generateVideoFromImage(
   console.log('🎬 Starting video generation...');
   console.log('📝 Video prompt:', prompt.substring(0, 50) + '...');
 
-  let operation = await getAI().models.generateVideos({
-    model: 'veo-2.0-generate-001',
-    prompt: `${prompt}. Make this image come alive for 5 seconds. Add subtle motion, like blinking or a gentle smile, while maintaining the character's look.`,
-    image: {
-      imageBytes: base64ImageData,
-      mimeType: mimeType,
-    },
-    config: {
-      numberOfVideos: 1,
-    },
-  });
+  const videoModels = getEnvList('VITE_GEMINI_VIDEO_MODELS', [
+    'veo-2.0-generate-001',
+    'veo-1.5-lite-001',
+  ]);
+  console.log('🎥 Video model candidates:', videoModels);
 
-  console.log('Video operation started:', operation);
+  let lastError: unknown = null;
 
-  // Poll for completion
-  while (!operation.done) {
-    console.log('Polling for video result...');
-    // Wait for 10 seconds before polling again
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    operation = await getAI().operations.getVideosOperation({
-      operation: operation,
-    });
-    console.log('Polling response:', operation);
+  for (const model of videoModels) {
+    console.log(`🧪 Attempting video model: ${model}`);
+
+    try {
+      let operation = await getAI().models.generateVideos({
+        model,
+        prompt: `${prompt}. Make this image come alive for 5 seconds. Add subtle motion, like blinking or a gentle smile, while maintaining the character's look.`,
+        image: {
+          imageBytes: base64ImageData,
+          mimeType: mimeType,
+        },
+        config: {
+          numberOfVideos: 1,
+        },
+      });
+
+      console.log('Video operation started:', operation);
+
+      while (!operation.done) {
+        console.log('Polling for video result...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        operation = await getAI().operations.getVideosOperation({
+          operation: operation,
+        });
+        console.log('Polling response:', operation);
+      }
+
+      if (operation.error) {
+        const errorMessage =
+          typeof operation.error.message === 'string'
+            ? operation.error.message
+            : 'Video generation failed';
+        throw new Error(errorMessage);
+      }
+
+      const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+
+      if (!downloadLink) {
+        throw new Error('Video generation completed, but no download link was provided.');
+      }
+
+      console.log('Video generated, download link:', downloadLink);
+
+      const apiKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || '';
+      const response = await fetch(`${downloadLink}&key=${apiKey}`);
+      if (!response.ok) {
+        throw new Error(`Failed to download video file: ${response.statusText}`);
+      }
+
+      const videoBlob = await response.blob();
+      const videoUrl = URL.createObjectURL(videoBlob);
+
+      console.log('Video downloaded and blob URL created:', videoUrl);
+      return videoUrl;
+    } catch (error) {
+      lastError = error;
+      console.error(`❌ Video model ${model} failed:`, error);
+    }
   }
 
-  if (operation.error) {
-    console.error('Video generation failed:', operation.error);
-    throw new Error(`Video generation failed: ${operation.error.message}`);
-  }
-
-  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
-
-  if (!downloadLink) {
-    console.error('No download link found in the video operation response.');
-    throw new Error(
-      'Video generation completed, but no download link was provided.'
-    );
-  }
-
-  console.log('Video generated, download link:', downloadLink);
-
-  // The download link needs the API key appended
-  const response = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
-  if (!response.ok) {
-    throw new Error(`Failed to download video file: ${response.statusText}`);
-  }
-
-  const videoBlob = await response.blob();
-  const videoUrl = URL.createObjectURL(videoBlob);
-
-  console.log('Video downloaded and blob URL created:', videoUrl);
-  return videoUrl;
+  console.error('❌ All video models failed');
+  throw lastError instanceof Error
+    ? lastError
+    : new Error('All video models failed.');
 }

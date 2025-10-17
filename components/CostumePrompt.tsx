@@ -22,6 +22,7 @@ const CostumeSelector: React.FC<CostumeSelectorProps> = ({
 }) => {
   const isCustomPromptDisabled = isLoading || tier === 'basic';
   const [showTips, setShowTips] = useState(false);
+  const [activeTab, setActiveTab] = useState<'presets' | 'custom'>('presets');
 
   return (
     <div className='bg-black/20 p-6 rounded-xl card-glow-border'>
@@ -110,55 +111,117 @@ const CostumeSelector: React.FC<CostumeSelectorProps> = ({
         )}
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
+      {/* Tab Selection */}
+      <div className='flex gap-2 mb-6'>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('presets');
+            setCustomPrompt('');
+          }}
+          className={`flex-1 py-3 px-6 rounded-lg font-bold text-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'presets'
+              ? 'bg-gradient-to-r from-orange-500 to-red-600 text-white shadow-lg shadow-orange-500/30'
+              : 'bg-black/40 text-gray-400 hover:text-white hover:bg-black/60 border border-gray-700'
+          }`}
+        >
+          <span className='text-xl'>🎃</span>
+          <span>Preset Costumes</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab('custom');
+            onSelectNightmare(null as any);
+          }}
+          className={`flex-1 py-3 px-6 rounded-lg font-bold text-lg transition-all flex items-center justify-center gap-2 ${
+            activeTab === 'custom'
+              ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg shadow-purple-500/30'
+              : 'bg-black/40 text-gray-400 hover:text-white hover:bg-black/60 border border-gray-700'
+          }`}
+        >
+          <span className='text-xl'>✨</span>
+          <span>Custom Prompt</span>
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'presets' ? (
         <div>
-          <h2 className='text-xl font-bold text-white mb-4 flex items-center gap-2'>
-            <NightmareIcon className='w-6 h-6 text-purple-400' />
-            Choose Your Nightmare
-          </h2>
-          <div className='overflow-x-auto py-2 -mx-2 px-2 custom-scrollbar'>
-            <div className='flex items-start gap-3 pb-2'>
-              {NIGHTMARE_OPTIONS.map(option => (
-                <button
-                  key={option.id}
-                  onClick={() => onSelectNightmare(option)}
-                  disabled={isLoading}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-200 flex-shrink-0 w-24 text-center ${selectedNightmare?.id === option.id ? 'border-orange-500 bg-orange-500/10' : 'border-transparent'}`}
-                >
-                  <span className='text-4xl bg-black/20 p-2 rounded-md'>
-                    {option.emoji}
-                  </span>
-                  <span className='mt-1 text-xs font-bold text-white whitespace-nowrap'>
-                    {option.name}
-                  </span>
-                </button>
-              ))}
-            </div>
+          <div className='flex items-center justify-between mb-4'>
+            <h2 className='text-xl font-bold text-white flex items-center gap-2'>
+              <NightmareIcon className='w-6 h-6 text-purple-400' />
+              Choose Your Nightmare
+            </h2>
+            {selectedNightmare && (
+              <button
+                type="button"
+                onClick={() => {
+                  onSelectNightmare(null as any);
+                }}
+                disabled={isLoading}
+                className='px-3 py-1 bg-red-600/20 border border-red-500 text-red-300 rounded-lg text-sm font-semibold hover:bg-red-600/30 hover:text-red-200 transition-all duration-200 flex items-center gap-1'
+              >
+                <span>❌</span>
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
+          <div className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4'>
+            {NIGHTMARE_OPTIONS.map(option => (
+              <button
+                type="button"
+                key={option.id}
+                onClick={() => onSelectNightmare(option)}
+                disabled={isLoading}
+                className={`flex flex-col items-center gap-3 p-4 rounded-xl border-2 hover:border-orange-500 hover:bg-orange-500/10 transition-all duration-200 ${
+                  selectedNightmare?.id === option.id
+                    ? 'border-orange-500 bg-orange-500/20 shadow-lg shadow-orange-500/20'
+                    : 'border-purple-700 bg-black/30'
+                }`}
+              >
+                <span className='text-5xl bg-black/20 p-3 rounded-lg'>
+                  {option.emoji}
+                </span>
+                <span className='text-sm font-bold text-white'>
+                  {option.name}
+                </span>
+              </button>
+            ))}
           </div>
         </div>
-
+      ) : (
         <div className='relative'>
-          <h3 className='text-xl font-bold text-white mb-4'>
-            Or Create Your Own
+          <h3 className='text-xl font-bold text-white mb-4 flex items-center gap-2'>
+            <span className='text-2xl'>🎨</span>
+            Create Your Own Transformation
           </h3>
           <textarea
-            className='w-full h-32 bg-black/30 border-2 border-purple-700 rounded-lg p-3 text-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition custom-scrollbar disabled:opacity-50 disabled:cursor-not-allowed'
+            className='w-full h-40 bg-black/30 border-2 border-purple-700 rounded-lg p-4 text-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition custom-scrollbar disabled:opacity-50 disabled:cursor-not-allowed text-lg'
             value={customPrompt}
             onChange={e => setCustomPrompt(e.target.value)}
-            placeholder='e.g., A pirate captain made of coral, standing on a ghostly ship...'
+            placeholder='Describe your Halloween transformation in detail...
+
+Example: "Transform me into a ghostly pirate captain with glowing green eyes, wearing a tattered naval coat covered in seaweed, standing on the deck of a spectral ship emerging from fog, with ethereal tentacles wrapped around the masts under a blood moon"'
             disabled={isCustomPromptDisabled}
           />
           {isCustomPromptDisabled && tier === 'basic' && (
             <div className='absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center text-center p-4'>
-              <p className='text-white font-semibold'>
-                Upgrade to the <span className='text-purple-400'>Pro</span> or{' '}
-                <span className='text-green-400'>Magic</span> plan to create
-                custom transformations!
+              <p className='text-white font-semibold text-lg'>
+                🔒 Upgrade to <span className='text-purple-400'>Pro</span> or{' '}
+                <span className='text-green-400'>Magic</span> plan to unlock custom prompts!
+              </p>
+            </div>
+          )}
+          {!isCustomPromptDisabled && customPrompt && (
+            <div className='mt-4 bg-green-900/20 border border-green-500/30 rounded-lg p-3'>
+              <p className='text-green-300 text-sm'>
+                ✅ Your custom prompt is ready! Click "Transform" to see your unique creation.
               </p>
             </div>
           )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

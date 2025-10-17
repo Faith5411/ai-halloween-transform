@@ -43,7 +43,9 @@ const PricingCard: React.FC<PricingCardProps> = ({
       const cancelUrl = `${appUrl}/?payment=canceled`;
 
       // Construct full URL with return parameters
-      const fullUrl = `${paymentLink}${separator}client_reference_id=${tier}`;
+      // Note: Payment Links in Stripe Dashboard must have redirect URLs configured
+      // See STRIPE_REDIRECT_SETUP.md for configuration instructions
+      const fullUrl = `${paymentLink}${separator}client_reference_id=${tier}&success_url=${encodeURIComponent(successUrl)}&cancel_url=${encodeURIComponent(cancelUrl)}`;
 
       // Open Stripe checkout in same window
       window.location.href = fullUrl;

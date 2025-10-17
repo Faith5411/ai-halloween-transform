@@ -151,7 +151,7 @@ export const getStripeCustomerId = async (
     .from('users')
     .select('stripe_customer_id')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error fetching Stripe customer ID:', error);
@@ -189,14 +189,20 @@ export const getUserTier = async (
     .from('users')
     .select('subscription_tier')
     .eq('id', userId)
-    .single();
+    .maybeSingle();
 
   if (error) {
     console.error('Error fetching user tier:', error);
     return 'basic';
   }
 
-  return data?.subscription_tier || 'basic';
+  // If no user record exists yet, return basic tier
+  if (!data) {
+    console.log('No user record found, defaulting to basic tier');
+    return 'basic';
+  }
+
+  return data.subscription_tier || 'basic';
 };
 
 // Update user's subscription tier

@@ -1,13 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { PumpkinIcon, GhostIcon, WandIcon, LightningIcon } from './Icons';
-import {
-  fetchGalleryItems,
-  voteOnItem,
-  checkUserVoted,
-  getGalleryStats,
-  type GalleryItem,
-} from '../services/galleryService';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+
 import { getCurrentUser } from '../services/authService';
+import {
+  checkUserVoted,
+  fetchGalleryItems,
+  type GalleryItem,
+  getGalleryStats,
+  voteOnItem,
+} from '../services/galleryService';
+import {
+  GhostIcon,
+  LightningIcon,
+  PumpkinIcon,
+  WandIcon,
+} from './Icons';
 
 interface LandingPageProps {
   onGetStarted?: () => void;
@@ -34,6 +44,9 @@ const LandingPage: React.FC<LandingPageProps> = ({
     totalWinners: 0,
     totalUsers: 0,
   });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [audioNeedsInteraction, setAudioNeedsInteraction] = useState(false);
+  const [isAudioPlaying, setIsAudioPlaying] = useState(false);
 
   // Get current user
   useEffect(() => {
@@ -53,6 +66,57 @@ const LandingPage: React.FC<LandingPageProps> = ({
     };
     loadStats();
   }, []);
+
+  // Loop spooky audio on landing. Falls back to user prompt if autoplay is blocked.
+  useEffect(() => {
+    const audio = new Audio('/audio/deep-voice-intro.wav');
+    audio.loop = true;
+    audio.volume = 0.35;
+    audioRef.current = audio;
+    let isCancelled = false;
+
+    const tryPlay = async () => {
+      try {
+        await audio.play();
+        if (!isCancelled) {
+          setIsAudioPlaying(true);
+          setAudioNeedsInteraction(false);
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.warn('Autoplay blocked for landing audio:', err);
+          setAudioNeedsInteraction(true);
+        }
+      }
+    };
+
+    void tryPlay();
+
+    return () => {
+      isCancelled = true;
+      audio.pause();
+      audioRef.current = null;
+    };
+  }, []);
+
+  const handleToggleAudio = async () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    if (audio.paused) {
+      try {
+        await audio.play();
+        setIsAudioPlaying(true);
+        setAudioNeedsInteraction(false);
+      } catch (err) {
+        console.error('Unable to resume landing audio:', err);
+        setAudioNeedsInteraction(true);
+      }
+    } else {
+      audio.pause();
+      setIsAudioPlaying(false);
+    }
+  };
 
   // Fetch gallery items
   useEffect(() => {
@@ -142,6 +206,23 @@ const LandingPage: React.FC<LandingPageProps> = ({
         <p className='text-xl md:text-2xl text-purple-300'>
           Transform yourself using J.L.Crandall's AI magic app ✨
         </p>
+        <div className='mt-4 flex justify-center'>
+          <button
+            type='button'
+            onClick={handleToggleAudio}
+            className={`px-6 py-2 rounded-full text-sm font-semibold transition-all ${
+              isAudioPlaying
+                ? 'bg-gradient-to-r from-purple-600 to-orange-500 text-white hover:from-purple-700 hover:to-orange-600'
+                : 'bg-black/40 border border-purple-500/40 text-purple-200 hover:bg-black/60'
+            }`}
+          >
+            {audioNeedsInteraction && !isAudioPlaying
+              ? '🔊 Enable Spooky Audio'
+              : isAudioPlaying
+              ? '🔇 Mute Spooky Audio'
+              : '🔊 Play Spooky Audio'}
+          </button>
+        </div>
       </header>
 
       {/* Contest Banner */}
@@ -368,14 +449,47 @@ const LandingPage: React.FC<LandingPageProps> = ({
                         </div>
                       )}
 
-                      {/* Image */}
+                      {/* Image - Show Before/After if available */}
                       <div className='relative aspect-square bg-gray-900'>
-                        <img
-                          src={item.thumbnail_url || item.image_url}
-                          alt={item.costume_name || 'Transformation'}
-                          className='w-full h-full object-cover'
-                          loading='lazy'
-                        />
+                        {item.before_image_url ? (
+                          <div className='relative w-full h-full'>
+                            {/* Before Image (left half) */}
+                            <div className='absolute inset-y-0 left-0 w-1/2 overflow-hidden'>
+                              <img
+                                src={item.before_image_url}
+                                alt='Before transformation'
+                                className='h-full w-[200%] object-cover'
+                                style={{ objectPosition: 'left' }}
+                                loading='lazy'
+                              />
+                              <div className='absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded font-bold'>
+                                BEFORE
+                              </div>
+                            </div>
+                            {/* After Image (right half) */}
+                            <div className='absolute inset-y-0 right-0 w-1/2 overflow-hidden'>
+                              <img
+                                src={item.thumbnail_url || item.image_url}
+                                alt={item.costume_name || 'After transformation'}
+                                className='h-full w-[200%] object-cover'
+                                style={{ objectPosition: 'right' }}
+                                loading='lazy'
+                              />
+                              <div className='absolute top-2 right-2 bg-orange-500/70 text-white text-xs px-2 py-1 rounded font-bold'>
+                                AFTER
+                              </div>
+                            </div>
+                            {/* Divider Line */}
+                            <div className='absolute inset-y-0 left-1/2 -translate-x-1/2 w-1 bg-gradient-to-b from-purple-500 via-orange-500 to-purple-500 opacity-60' />
+                          </div>
+                        ) : (
+                          <img
+                            src={item.thumbnail_url || item.image_url}
+                            alt={item.costume_name || 'Transformation'}
+                            className='w-full h-full object-cover'
+                            loading='lazy'
+                          />
+                        )}
                         <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity' />
                       </div>
 

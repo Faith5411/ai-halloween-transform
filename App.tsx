@@ -6,6 +6,7 @@ import ResultDisplay from './components/ResultDisplay';
 import Pricing from './components/Pricing';
 import { PaymentSuccess, PaymentCanceled } from './components/PaymentSuccess';
 import ShareToGallery from './components/ShareToGallery';
+import Gallery from './components/Gallery';
 import AuthModal from './components/AuthModal';
 import LandingPage from './components/LandingPage';
 import { useAuth } from './contexts/AuthContext';
@@ -48,6 +49,9 @@ function App() {
 
   // Auth modal state
   const [showAuthModal, setShowAuthModal] = useState(false);
+
+  // Gallery state
+  const [showGallery, setShowGallery] = useState(false);
 
   // Check for payment status on load
   useEffect(() => {
@@ -324,7 +328,7 @@ function App() {
       </div>
 
       <div className='relative z-10 container mx-auto px-4 py-8 max-w-7xl'>
-        <Header />
+        <Header onShowGallery={() => setShowGallery(true)} />
 
         <Pricing selectedTier={tier} onSelectTier={handleTierChange} />
 
@@ -374,6 +378,7 @@ function App() {
       {showShareModal && result && (
         <ShareToGallery
           imageUrl={result}
+          beforeImageUrl={file?.preview}
           costumeName={selectedNightmare?.label || 'Custom Transform'}
           prompt={customPrompt}
           isVideo={!!videoResult}
@@ -382,8 +387,15 @@ function App() {
           onSuccess={() => {
             console.log('✅ Successfully shared to gallery!');
             setShowShareModal(false);
+            // Optionally open gallery after sharing
+            setTimeout(() => setShowGallery(true), 500);
           }}
         />
+      )}
+
+      {/* Gallery Modal */}
+      {showGallery && (
+        <Gallery onClose={() => setShowGallery(false)} />
       )}
     </div>
   );
