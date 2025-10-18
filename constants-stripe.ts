@@ -34,9 +34,10 @@ export const TRANSFORM_PACK_LINKS = {
 // Users can click "Subscribe Now" and will be redirected to Stripe checkout.
 //
 // Monthly Plans:
-// Basic: $4.99/month - 10 transforms
-// Pro: $14.99/month - 30 transforms
-// Magic: $29.99/month - 35 transforms + 35 videos
+// Free: 3 image transforms (no subscription needed)
+// Basic: $4.99/month - 10 image transforms
+// Pro: $14.99/month - 30 image transforms
+// Magic: $29.99/month - 30 image transforms + 4 videos
 //
 // One-Time Transform Packs:
 // 5 Transforms: $2.99

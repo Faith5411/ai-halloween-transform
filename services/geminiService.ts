@@ -42,17 +42,19 @@ export async function transformImage(
   images: { data: string; mimeType: string }[],
   prompt: string
 ): Promise<string> {
-  console.log('🎨 Starting image transformation...');
-  console.log('📝 Prompt:', prompt.substring(0, 50) + '...');
+  console.log('🎨 Starting Halloween image transformation with Imagen 4...');
+  console.log('📝 Costume prompt:', prompt.substring(0, 50) + '...');
   console.log('📸 Images count:', images.length);
   console.log('📸 First image MIME:', images[0]?.mimeType);
   console.log('📸 First image data length:', images[0]?.data?.length);
 
+  // Use Imagen 4 for better image generation
   const imageModels = getEnvList('VITE_GEMINI_IMAGE_MODELS', [
-    'gemini-2.5-pro',
-    'gemini-2.0-flash-exp',
+    'imagen-4.0-generate-001',  // Primary: Imagen 4.0 for high quality Halloween costumes
+    'imagen-4.0-fast-001',      // Fallback: Faster version if needed
+    'gemini-2.5-pro',           // Fallback: If Imagen is not available
   ]);
-  console.log('🧠 Image model candidates:', imageModels);
+  console.log('🧠 Image model candidates (using Imagen 4):', imageModels);
 
   const imageParts = images.map(image => ({
     inlineData: {
@@ -61,8 +63,37 @@ export async function transformImage(
     },
   }));
 
+  // Enhanced Halloween-specific pre-prompt for Imagen 4
   const textPart = {
-    text: `IMPORTANT: Keep the original person or animal completely realistic and recognizable. Do NOT transform them into the character. Instead, dress them in a Halloween costume that matches this description: ${prompt}. The person/animal should look exactly like themselves, just wearing the costume. The final image must be hyper-realistic, resembling a high-resolution photograph with natural lighting, detailed textures, and lifelike features. The original face, body, and features must remain clearly visible and unchanged - only add costume elements like clothing, accessories, makeup, and props. Avoid any cartoonish, illustrative, or morphing effects.`,
+    text: `HALLOWEEN COSTUME TRANSFORMATION INSTRUCTIONS:
+
+CRITICAL: This is a Halloween costume photo app. The goal is to create a realistic photo of the SAME PERSON wearing a Halloween costume.
+
+IDENTITY PRESERVATION (MOST IMPORTANT):
+- Keep the person's face, facial features, and body structure EXACTLY the same
+- The person must be instantly recognizable as themselves
+- Maintain their exact skin tone, eye color, hair texture, and facial characteristics
+- Preserve their age, gender, and physical build
+- This should look like the same person dressed up for Halloween, NOT a different person
+
+HALLOWEEN COSTUME APPLICATION:
+Apply the following Halloween costume: ${prompt}
+
+COSTUME DETAILS:
+- Add realistic Halloween costume clothing over their body
+- Apply appropriate Halloween makeup if the costume requires it (face paint, fake blood, etc.)
+- Add costume accessories (hats, masks around neck, props, wings, etc.)
+- Include Halloween-themed background elements if appropriate
+- Make the costume look like it was purchased or rented from a costume shop
+
+PHOTO REALISM:
+- Output must look like a real photograph taken at a Halloween party
+- Use natural lighting as if taken with a phone camera
+- Maintain photo-realistic textures and details
+- No cartoon, illustration, or artistic effects
+- Should look like an actual Halloween costume photo you'd post on social media
+
+QUALITY: Generate a high-resolution, detailed image that looks like a real Halloween costume photo where the person is clearly recognizable as themselves in costume.`,
   };
 
   console.log('📡 Sending request to Gemini API...');
@@ -143,7 +174,7 @@ export async function generateVideoFromImage(
   mimeType: string,
   prompt: string
 ): Promise<string> {
-  console.log('🎬 Starting video generation...');
+  console.log('🎬 Starting Halloween video generation...');
   console.log('📝 Video prompt:', prompt.substring(0, 50) + '...');
 
   const videoModels = getEnvList('VITE_GEMINI_VIDEO_MODELS', [
@@ -160,7 +191,17 @@ export async function generateVideoFromImage(
     try {
       let operation = await getAI().models.generateVideos({
         model,
-        prompt: `${prompt}. Make this image come alive for 5 seconds. Add subtle motion, like blinking or a gentle smile, while maintaining the character's look.`,
+        prompt: `HALLOWEEN VIDEO: ${prompt}.
+
+        Make this Halloween costume photo come alive for 3 seconds with spooky animations:
+        - Keep the person's face and identity EXACTLY the same - they should be recognizable
+        - Add Halloween-themed animations like:
+          * Subtle spooky movements (cape fluttering, costume accessories moving)
+          * Halloween gestures (monster poses, witch cackling, zombie movements)
+          * Atmospheric effects (fog, lightning flashes, glowing eyes)
+          * Character-appropriate actions based on the costume
+        - Maintain the realistic photo quality throughout
+        - The person should look like themselves in costume doing Halloween actions`,
         image: {
           imageBytes: base64ImageData,
           mimeType: mimeType,

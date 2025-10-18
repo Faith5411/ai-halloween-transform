@@ -10,31 +10,43 @@ export const STRIPE_CONFIG = {
 };
 
 export const PLAN_DETAILS = {
+  free: {
+    name: 'Free',
+    price: 0,
+    features: [
+      '3 image transforms',
+      'Basic Halloween costumes',
+      'Standard processing',
+    ],
+  },
   basic: {
     name: 'Basic',
     price: 4.99,
     features: [
-      'Upload your photo',
-      'Pick from preset costumes',
-      'Generate unlimited images',
+      '10 image transforms per month',
+      'All Halloween costumes',
+      'Priority processing',
     ],
   },
   pro: {
     name: 'Pro',
-    price: 12.99,
+    price: 14.99,
     features: [
+      '30 image transforms per month',
       'All Basic features',
-      'Use custom prompts',
-      'Priority processing',
+      'Custom costume prompts',
+      'Highest quality outputs',
     ],
   },
   magic: {
     name: 'Magic',
     price: 29.99,
     features: [
+      '30 image transforms per month',
+      '4 video animations per month',
       'All Pro features',
-      'Generate 5-second videos',
-      'Access to new AI models',
+      '3-second spooky animations',
+      'Early access to new features',
     ],
   },
 };

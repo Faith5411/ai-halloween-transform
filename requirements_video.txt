@@ -1,0 +1,22 @@
+# Video Generation Requirements for Halloween AI App
+
+# Core requirements
+torch>=2.0.0
+diffusers>=0.27.0
+transformers>=4.40.0
+accelerate>=0.27.0
+imageio[ffmpeg]>=2.31.0
+Pillow>=10.0.0
+
+# Optional optimizations for low VRAM
+xformers>=0.0.22  # For memory-efficient attention
+bitsandbytes>=0.41.0  # For 8-bit quantization
+optimum-quanto>=0.2.0  # For quantization
+pytorch-ao>=0.1.0  # For advanced optimization
+
+# Video processing
+opencv-python>=4.8.0
+moviepy>=1.0.3
+
+# For ComfyUI integration (optional)
+# comfy-cli>=0.1.0

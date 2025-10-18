@@ -1,43 +1,49 @@
-// Usage tracking service for transform limits
-// Tracks how many transforms users have made per billing period
+// Usage tracking service with token-based system
+// Tracks how many tokens users have used per billing period
+// $1 = 250 tokens
+
+import { TOKEN_COSTS, TIER_TOKENS } from '../constants/credits';
 
 export interface UsageData {
-  transforms: number;
-  videos: number;
-  bonusTransforms: number; // One-time purchases (don't reset monthly)
+  tokensUsed: number;      // Tokens used in current billing period
+  bonusTokens: number;     // One-time purchased tokens (don't reset monthly)
   lastResetDate: string;
   tier: 'free' | 'basic' | 'pro' | 'magic';
 }
 
-// Tier limits
+// Re-export for backward compatibility
 export const TIER_LIMITS = {
   free: {
-    transforms: 3, // 3 lifetime for free tier
+    transforms: 3,
     videos: 0,
+    tokens: TIER_TOKENS.free.tokens,
     name: 'Free',
-    isLifetime: true, // This is a lifetime limit, not monthly
+    isLifetime: true,
     customPrompts: false,
   },
   basic: {
-    transforms: 10, // 10 per month
-    videos: 0,
+    transforms: 12, // With 1250 tokens, can do 12 images
+    videos: 1,      // Or 1 video with 250 tokens left
+    tokens: TIER_TOKENS.basic.tokens,
     name: 'Basic',
     isLifetime: false,
-    customPrompts: false, // Only preset costumes
+    customPrompts: false,
   },
   pro: {
-    transforms: 30, // 30 per month
-    videos: 0,
+    transforms: 37, // With 3750 tokens, can do 37 images
+    videos: 3,      // Or 3 videos with 750 tokens left
+    tokens: TIER_TOKENS.pro.tokens,
     name: 'Pro',
     isLifetime: false,
-    customPrompts: true, // Can use custom prompts
+    customPrompts: true,
   },
   magic: {
-    transforms: 30, // 30 per month
-    videos: 30, // 30 videos per month
+    transforms: 75, // With 7500 tokens, can do 75 images
+    videos: 7,      // Or 7 videos with 500 tokens left
+    tokens: TIER_TOKENS.magic.tokens,
     name: 'Magic',
     isLifetime: false,
-    customPrompts: true, // Can use custom prompts
+    customPrompts: true,
   },
 };
 
@@ -61,6 +67,23 @@ function shouldResetUsage(lastResetDate: string): boolean {
 }
 
 /**
+ * Migrate old usage data to token system
+ */
+function migrateOldData(oldData: any): UsageData {
+  // Calculate tokens used based on old transform/video counts
+  const tokensFromTransforms = (oldData.transforms || 0) * TOKEN_COSTS.IMAGE_TRANSFORM;
+  const tokensFromVideos = (oldData.videos || 0) * TOKEN_COSTS.VIDEO_GENERATION;
+  const bonusTokens = (oldData.bonusTransforms || 0) * TOKEN_COSTS.IMAGE_TRANSFORM;
+
+  return {
+    tokensUsed: tokensFromTransforms + tokensFromVideos,
+    bonusTokens: bonusTokens,
+    lastResetDate: oldData.lastResetDate || getCurrentBillingPeriodStart(),
+    tier: oldData.tier || 'free',
+  };
+}
+
+/**
  * Get current usage data for the user
  */
 export function getUsageData(tier: 'free' | 'basic' | 'pro' | 'magic'): UsageData {
@@ -70,24 +93,29 @@ export function getUsageData(tier: 'free' | 'basic' | 'pro' | 'magic'): UsageDat
     if (!stored) {
       // First time - initialize
       return {
-        transforms: 0,
-        videos: 0,
-        bonusTransforms: 0,
+        tokensUsed: 0,
+        bonusTokens: 0,
         lastResetDate: getCurrentBillingPeriodStart(),
         tier,
       };
     }
 
-    const data: UsageData = JSON.parse(stored);
+    const data = JSON.parse(stored);
 
-    // For free tier (lifetime limit), never reset transforms
+    // Migrate old data if needed
+    if ('transforms' in data || 'videos' in data) {
+      const migrated = migrateOldData(data);
+      saveUsageData(migrated);
+      return migrated;
+    }
+
+    // For free tier (lifetime limit), never reset tokens
     if (tier === 'free') {
-      // If switching to free from another tier, keep the transform count
+      // If switching to free from another tier, keep the token count
       if (data.tier !== tier) {
         return {
-          transforms: data.transforms || 0, // Keep existing transform count for free
-          videos: 0,
-          bonusTransforms: data.bonusTransforms || 0,
+          tokensUsed: data.tokensUsed || 0, // Keep existing token usage for free
+          bonusTokens: data.bonusTokens || 0,
           lastResetDate: getCurrentBillingPeriodStart(),
           tier,
         };
@@ -99,9 +127,8 @@ export function getUsageData(tier: 'free' | 'basic' | 'pro' | 'magic'): UsageDat
     // For paid tiers, check if tier changed or if we need to reset for new billing period
     if (data.tier !== tier || shouldResetUsage(data.lastResetDate)) {
       return {
-        transforms: 0, // Reset for paid tiers
-        videos: 0,
-        bonusTransforms: data.bonusTransforms || 0, // Keep bonus transforms on reset
+        tokensUsed: 0, // Reset for paid tiers
+        bonusTokens: data.bonusTokens || 0, // Keep bonus tokens on reset
         lastResetDate: getCurrentBillingPeriodStart(),
         tier,
       };
@@ -111,9 +138,8 @@ export function getUsageData(tier: 'free' | 'basic' | 'pro' | 'magic'): UsageDat
   } catch (error) {
     console.error('Error reading usage data:', error);
     return {
-      transforms: 0,
-      videos: 0,
-      bonusTransforms: 0,
+      tokensUsed: 0,
+      bonusTokens: 0,
       lastResetDate: getCurrentBillingPeriodStart(),
       tier,
     };
@@ -132,95 +158,111 @@ function saveUsageData(data: UsageData): void {
 }
 
 /**
- * Check if user can create a transformation
+ * Check if user has enough tokens for an image transformation
  */
 export function canTransform(tier: 'free' | 'basic' | 'pro' | 'magic'): boolean {
   const usage = getUsageData(tier);
-  const limit = TIER_LIMITS[tier].transforms;
+  const tierTokens = TIER_TOKENS[tier].tokens;
+  const availableTokens = tierTokens - usage.tokensUsed + usage.bonusTokens;
 
-  // -1 means unlimited
-  if (limit === -1) return true;
-
-  // Can transform if within regular limit OR have bonus transforms
-  return usage.transforms < limit || usage.bonusTransforms > 0;
+  return availableTokens >= TOKEN_COSTS.IMAGE_TRANSFORM;
 }
 
 /**
- * Check if user can create a video
+ * Check if user has enough tokens for a video generation
  */
 export function canCreateVideo(tier: 'free' | 'basic' | 'pro' | 'magic'): boolean {
   const usage = getUsageData(tier);
-  const limit = TIER_LIMITS[tier].videos;
+  const tierTokens = TIER_TOKENS[tier].tokens;
+  const availableTokens = tierTokens - usage.tokensUsed + usage.bonusTokens;
 
-  // -1 means unlimited
-  if (limit === -1) return true;
-
-  return usage.videos < limit;
+  return availableTokens >= TOKEN_COSTS.VIDEO_GENERATION;
 }
 
 /**
- * Increment transformation count
+ * Use tokens for an image transformation
  */
 export function incrementTransformCount(tier: 'free' | 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
-  const limit = TIER_LIMITS[tier].transforms;
+  const tierTokens = TIER_TOKENS[tier].tokens;
+  const tokensNeeded = TOKEN_COSTS.IMAGE_TRANSFORM;
 
-  // Use bonus transforms first if available and regular limit is reached
-  if (limit !== -1 && usage.transforms >= limit && usage.bonusTransforms > 0) {
-    usage.bonusTransforms -= 1;
-    console.log(
-      `✅ Used bonus transform! Bonus remaining: ${usage.bonusTransforms}`
-    );
+  // Calculate available tokens
+  const regularTokensAvailable = tierTokens - usage.tokensUsed;
+
+  if (regularTokensAvailable >= tokensNeeded) {
+    // Use regular tokens
+    usage.tokensUsed += tokensNeeded;
+    console.log(`✅ Used ${tokensNeeded} tokens for image. Tokens used: ${usage.tokensUsed}/${tierTokens}`);
+  } else if (regularTokensAvailable > 0) {
+    // Use remaining regular tokens and some bonus tokens
+    const bonusNeeded = tokensNeeded - regularTokensAvailable;
+    usage.tokensUsed = tierTokens;
+    usage.bonusTokens -= bonusNeeded;
+    console.log(`✅ Used ${regularTokensAvailable} regular + ${bonusNeeded} bonus tokens`);
   } else {
-    usage.transforms += 1;
-    console.log(
-      `✅ Transform count: ${usage.transforms}/${
-        TIER_LIMITS[tier].transforms === -1 ? '∞' : TIER_LIMITS[tier].transforms
-      }`
-    );
+    // Use only bonus tokens
+    usage.bonusTokens -= tokensNeeded;
+    console.log(`✅ Used ${tokensNeeded} bonus tokens. Bonus remaining: ${usage.bonusTokens}`);
   }
 
   saveUsageData(usage);
 }
 
 /**
- * Increment video count
+ * Use tokens for a video generation
  */
 export function incrementVideoCount(tier: 'free' | 'basic' | 'pro' | 'magic'): void {
   const usage = getUsageData(tier);
-  usage.videos += 1;
+  const tierTokens = TIER_TOKENS[tier].tokens;
+  const tokensNeeded = TOKEN_COSTS.VIDEO_GENERATION;
+
+  // Calculate available tokens
+  const regularTokensAvailable = tierTokens - usage.tokensUsed;
+
+  if (regularTokensAvailable >= tokensNeeded) {
+    // Use regular tokens
+    usage.tokensUsed += tokensNeeded;
+    console.log(`✅ Used ${tokensNeeded} tokens for video. Tokens used: ${usage.tokensUsed}/${tierTokens}`);
+  } else if (regularTokensAvailable > 0) {
+    // Use remaining regular tokens and some bonus tokens
+    const bonusNeeded = tokensNeeded - regularTokensAvailable;
+    usage.tokensUsed = tierTokens;
+    usage.bonusTokens -= bonusNeeded;
+    console.log(`✅ Used ${regularTokensAvailable} regular + ${bonusNeeded} bonus tokens`);
+  } else {
+    // Use only bonus tokens
+    usage.bonusTokens -= tokensNeeded;
+    console.log(`✅ Used ${tokensNeeded} bonus tokens. Bonus remaining: ${usage.bonusTokens}`);
+  }
+
   saveUsageData(usage);
-  console.log(
-    `✅ Video count: ${usage.videos}/${TIER_LIMITS[tier].videos === -1 ? '∞' : TIER_LIMITS[tier].videos}`
-  );
 }
 
 /**
- * Get remaining transforms for current billing period
+ * Get remaining tokens for current billing period
  */
-export function getRemainingTransforms(
-  tier: 'free' | 'basic' | 'pro' | 'magic'
-): number {
+export function getRemainingTokens(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
-  const limit = TIER_LIMITS[tier].transforms;
-
-  if (limit === -1) return -1; // unlimited
-
-  const remaining = limit - usage.transforms;
-  return Math.max(0, remaining) + usage.bonusTransforms;
+  const tierTokens = TIER_TOKENS[tier].tokens;
+  const remaining = tierTokens - usage.tokensUsed + usage.bonusTokens;
+  return Math.max(0, remaining);
 }
 
 /**
- * Get remaining videos for current billing period
+ * Get remaining transforms based on available tokens
+ */
+export function getRemainingTransforms(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
+  const remainingTokens = getRemainingTokens(tier);
+  return Math.floor(remainingTokens / TOKEN_COSTS.IMAGE_TRANSFORM);
+}
+
+/**
+ * Get remaining videos based on available tokens
  */
 export function getRemainingVideos(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
-  const usage = getUsageData(tier);
-  const limit = TIER_LIMITS[tier].videos;
-
-  if (limit === -1) return -1; // unlimited
-
-  const remaining = limit - usage.videos;
-  return Math.max(0, remaining);
+  const remainingTokens = getRemainingTokens(tier);
+  return Math.floor(remainingTokens / TOKEN_COSTS.VIDEO_GENERATION);
 }
 
 /**
@@ -228,11 +270,10 @@ export function getRemainingVideos(tier: 'free' | 'basic' | 'pro' | 'magic'): nu
  */
 export function getUsagePercentage(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
-  const limit = TIER_LIMITS[tier].transforms;
+  const tierTokens = TIER_TOKENS[tier].tokens;
 
-  if (limit === -1) return 0; // unlimited = no percentage
-
-  return Math.min(100, (usage.transforms / limit) * 100);
+  // All tiers have tokens, no need to check for 0
+  return Math.min(100, (usage.tokensUsed / tierTokens) * 100);
 }
 
 /**
@@ -254,9 +295,8 @@ export function resetUsageIfNeeded(tier: 'free' | 'basic' | 'pro' | 'magic'): vo
   if (shouldResetUsage(usage.lastResetDate)) {
     console.log('🔄 Resetting usage for new billing period');
     const newUsage: UsageData = {
-      transforms: 0,
-      videos: 0,
-      bonusTransforms: usage.bonusTransforms, // Keep bonus transforms
+      tokensUsed: 0,
+      bonusTokens: usage.bonusTokens, // Keep bonus tokens
       lastResetDate: getCurrentBillingPeriodStart(),
       tier,
     };
@@ -269,50 +309,59 @@ export function resetUsageIfNeeded(tier: 'free' | 'basic' | 'pro' | 'magic'): vo
  */
 export function getUsageSummary(tier: 'free' | 'basic' | 'pro' | 'magic'): string {
   const usage = getUsageData(tier);
-  const transformLimit = TIER_LIMITS[tier].transforms;
-  const videoLimit = TIER_LIMITS[tier].videos;
+  const tierTokens = TIER_TOKENS[tier].tokens;
+  const remainingTokens = getRemainingTokens(tier);
+  const maxImages = Math.floor(remainingTokens / TOKEN_COSTS.IMAGE_TRANSFORM);
+  const maxVideos = Math.floor(remainingTokens / TOKEN_COSTS.VIDEO_GENERATION);
 
-  const transformText =
-    transformLimit === -1
-      ? `${usage.transforms} transforms (unlimited)`
-      : `${usage.transforms}/${transformLimit} transforms`;
+  const tokenText = `${remainingTokens}/${tierTokens} tokens remaining`;
+  const usageText = maxVideos > 0
+    ? `(${maxImages} images OR ${maxVideos} videos)`
+    : `(${maxImages} images)`;
 
-  const videoText =
-    videoLimit === -1
-      ? `${usage.videos} videos (unlimited)`
-      : videoLimit === 0
-        ? 'No videos'
-        : `${usage.videos}/${videoLimit} videos`;
+  const bonusText = usage.bonusTokens > 0
+    ? ` + ${usage.bonusTokens} bonus tokens`
+    : '';
 
-  const bonusText =
-    usage.bonusTransforms > 0
-      ? ` + ${usage.bonusTransforms} bonus transforms`
-      : '';
-
-  return `${transformText}${bonusText}, ${videoText}`;
+  return `${tokenText} ${usageText}${bonusText}`;
 }
 
 /**
- * Add bonus transforms (from one-time purchases)
+ * Add bonus tokens (from one-time purchases)
  */
 export function addBonusTransforms(count: number): void {
-  // We'll store this for the current tier, but it persists across tier changes
+  // Convert old "transform count" to tokens for backward compatibility
+  const bonusTokens = count * TOKEN_COSTS.IMAGE_TRANSFORM;
+  addBonusTokens(bonusTokens);
+}
+
+/**
+ * Add bonus tokens directly
+ */
+export function addBonusTokens(tokens: number): void {
   const currentTier =
     (localStorage.getItem('userTier') as 'free' | 'basic' | 'pro' | 'magic') || 'free';
   const usage = getUsageData(currentTier);
-  usage.bonusTransforms = (usage.bonusTransforms || 0) + count;
+  usage.bonusTokens = (usage.bonusTokens || 0) + tokens;
   saveUsageData(usage);
-  console.log(
-    `✅ Added ${count} bonus transforms! Total: ${usage.bonusTransforms}`
-  );
+  console.log(`✅ Added ${tokens} bonus tokens! Total: ${usage.bonusTokens}`);
 }
 
 /**
- * Get bonus transforms available
+ * Get bonus tokens available
  */
 export function getBonusTransforms(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
   const usage = getUsageData(tier);
-  return usage.bonusTransforms || 0;
+  // Return as "transform count" for backward compatibility
+  return Math.floor(usage.bonusTokens / TOKEN_COSTS.IMAGE_TRANSFORM);
+}
+
+/**
+ * Get bonus tokens directly
+ */
+export function getBonusTokens(tier: 'free' | 'basic' | 'pro' | 'magic'): number {
+  const usage = getUsageData(tier);
+  return usage.bonusTokens || 0;
 }
 
 export default {
@@ -320,6 +369,7 @@ export default {
   canCreateVideo,
   incrementTransformCount,
   incrementVideoCount,
+  getRemainingTokens,
   getRemainingTransforms,
   getRemainingVideos,
   getUsagePercentage,
@@ -328,6 +378,8 @@ export default {
   getUsageData,
   getUsageSummary,
   addBonusTransforms,
+  addBonusTokens,
   getBonusTransforms,
+  getBonusTokens,
   TIER_LIMITS,
 };

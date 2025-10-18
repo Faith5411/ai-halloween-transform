@@ -1,0 +1,40 @@
+# DeFi Trading AI Requirements
+
+# Core ML/AI
+torch>=2.0.0
+transformers>=4.35.0
+accelerate>=0.24.0
+bitsandbytes>=0.41.0
+datasets>=2.14.0
+
+# Blockchain
+web3>=6.11.0
+eth-account>=0.10.0
+eth-utils>=2.3.0
+py-solana>=0.30.0
+
+# Data & APIs
+aiohttp>=3.9.0
+requests>=2.31.0
+pandas>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# DeFi specific
+pycoingecko>=3.1.0
+python-binance>=1.0.17
+
+# Utilities
+python-dotenv>=1.0.0
+asyncio-throttle>=0.1.1
+redis>=5.0.0
+matplotlib>=3.7.0
+plotly>=5.17.0
+
+# Trading indicators
+ta-lib>=0.4.28
+pandas-ta>=0.3.14b0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
